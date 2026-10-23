@@ -90,6 +90,8 @@ namespace KingdomDefense.Map
 
         private void Awake()
         {
+            EnsureWaveSpawner();
+
             // Nếu sa bàn đã được sinh trong Scene (MapGenerator đã có các GameObject con), giữ nguyên và không làm gì cả
             if (transform.childCount > 0)
             {
@@ -99,6 +101,16 @@ namespace KingdomDefense.Map
             if (Application.isPlaying)
             {
                 GenerateMap();
+            }
+        }
+
+        private void EnsureWaveSpawner()
+        {
+            if (Object.FindAnyObjectByType<KingdomDefense.Enemy.WaveSpawner>() == null)
+            {
+                GameObject spawnerObj = new GameObject("WaveSpawner");
+                spawnerObj.transform.SetParent(transform);
+                spawnerObj.AddComponent<KingdomDefense.Enemy.WaveSpawner>();
             }
         }
 

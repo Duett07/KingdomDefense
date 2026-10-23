@@ -16157,6 +16157,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1098866870
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1098866872}
+  - component: {fileID: 1098866871}
+  m_Layer: 0
+  m_Name: WaveSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1098866871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098866870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 331797e8c9aa9110d9bd59e98403f094, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KingdomDefense.Enemy.WaveSpawner
+  knightPrefab: {fileID: 919132149155446097, guid: 9af0a3047dca40eca87087f939955ca4, type: 3}
+  barbarianPrefab: {fileID: 919132149155446097, guid: 3dbaff803a7c4bd3984685eb14cab92d, type: 3}
+  roguePrefab: {fileID: 919132149155446097, guid: 54f84a93ec614782964247396db29ac4, type: 3}
+  swordPrefab: {fileID: 919132149155446097, guid: a07893a1e7524b758ce99657c70caf56, type: 3}
+  greatswordPrefab: {fileID: 919132149155446097, guid: c63c703b02e749898c9f8c5b66a86edb, type: 3}
+  shieldPrefab: {fileID: 919132149155446097, guid: b46ea1f3322d47589b478f32af7df7e1, type: 3}
+  knightMaterial: {fileID: 2100000, guid: a698ab067d80470c8fc6f0612f861d4d, type: 2}
+  barbarianMaterial: {fileID: 2100000, guid: 2282f00e32774d9f8619d3ff02c368a4, type: 2}
+  knightTexture: {fileID: 2800000, guid: 8d47ee3256c2403c96ab355434824da1, type: 3}
+  barbarianTexture: {fileID: 2800000, guid: a6f4a146f59f4a3fb46b394dcfebee72, type: 3}
+  totalWaves: 10
+  timeBetweenWaves: 8
+  timeBetweenSpawns: 1
+  initialDelay: 1.5
+--- !u!4 &1098866872
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098866870}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1100000001
 GameObject:
   m_ObjectHideFlags: 0
