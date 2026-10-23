@@ -144,7 +144,7 @@ Light:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_Enabled: 1
-  serializedVersion: 8
+  serializedVersion: 11
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
@@ -197,6 +197,7 @@ GameObject:
   - component: {fileID: 963194228}
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
+  - component: {fileID: 963194229}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -265,3 +266,85 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 60, y: -45, z: 0}
+--- !u!114 &963194229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 073235867529bff5ebf46cce5eb5b43e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  autoAlignIsometric: 1
+  isometricEulerAngles: {x: 60, y: -45, z: 0}
+  panSpeed: 20
+  sprintMultiplier: 2
+  smoothSpeed: 10
+  zoomSpeed: 25
+  minHeight: 6
+  maxHeight: 30
+  enableEdgePanning: 1
+  edgePanThickness: 15
+  enableMouseDrag: 1
+  dragSensitivity: 0.5
+  minBounds: {x: -40, y: -40}
+  maxBounds: {x: 40, y: 40}
+--- !u!1 &1100000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1100000002}
+  - component: {fileID: 1100000003}
+  m_Layer: 0
+  m_Name: MapGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1100000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100000001}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1100000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fd90ea4f9e34d89abe9807ace26b068, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapWidth: 16
+  mapHeight: 12
+  tileSize: 1
+  grassPrefab: {fileID: 0}
+  pathPrefab: {fileID: 0}
+  portalPrefab: {fileID: 0}
+  gatePrefab: {fileID: 0}
+  nodePrefab: {fileID: 0}
+  defaultMaterial: {fileID: 2100000, guid: e0ef5e0685644db98c2f9ee0e3b63781, type: 2}
+  grassColor: {r: 0.35, g: 0.65, b: 0.25, a: 1}
+  pathColor: {r: 0.72, g: 0.55, b: 0.35, a: 1}
+  portalColor: {r: 0.6, g: 0.2, b: 0.8, a: 1}
+  gateColor: {r: 0.2, g: 0.5, b: 0.85, a: 1}
+  nodeColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
