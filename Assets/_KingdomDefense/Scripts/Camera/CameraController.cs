@@ -18,8 +18,8 @@ namespace KingdomDefense.Cameras
         [Header("--- CẤU HÌNH GÓC NHÌN ISOMETRIC ---")]
         [Tooltip("Tự động đặt góc quay isometric khi bắt đầu")]
         [SerializeField] private bool autoAlignIsometric = true;
-        [Tooltip("Góc nghiêng chuẩn: X = 60, Y = -45, Z = 0")]
-        [SerializeField] private Vector3 isometricEulerAngles = new Vector3(60f, -45f, 0f);
+        [Tooltip("Góc nghiêng chuẩn nhìn thẳng vào sa bàn: X = 60, Y = 0, Z = 0")]
+        [SerializeField] private Vector3 isometricEulerAngles = new Vector3(60f, 0f, 0f);
 
         [Header("--- TỐC ĐỘ DI CHUYỂN (WASD) ---")]
         [Tooltip("Tốc độ di chuyển cơ bản")]
@@ -33,13 +33,13 @@ namespace KingdomDefense.Cameras
         [Tooltip("Tốc độ zoom khi cuộn chuột")]
         [SerializeField] private float zoomSpeed = 25f;
         [Tooltip("Độ cao camera tối thiểu (zoom gần nhất)")]
-        [SerializeField] private float minHeight = 6f;
+        [SerializeField] private float minHeight = 10f;
         [Tooltip("Độ cao camera tối đa (zoom xa nhất)")]
-        [SerializeField] private float maxHeight = 30f;
+        [SerializeField] private float maxHeight = 35f;
 
         [Header("--- RÊ CHUỘT MÉP MÀN HÌNH (EDGE PAN) ---")]
-        [Tooltip("Bật/tắt tính năng rê chuột ra mép để cuộn màn hình")]
-        [SerializeField] private bool enableEdgePanning = true;
+        [Tooltip("Bật/tắt tính năng rê chuột ra mép để cuộn màn hình (mặc định tắt để tránh trôi camera trong Editor)")]
+        [SerializeField] private bool enableEdgePanning = false;
         [Tooltip("Bề dày vùng mép màn hình kích hoạt cuộn (pixel)")]
         [SerializeField] private float edgePanThickness = 15f;
 
@@ -51,9 +51,9 @@ namespace KingdomDefense.Cameras
 
         [Header("--- GIỚI HẠN BIÊN BẢN ĐỒ (BOUNDS) ---")]
         [Tooltip("Giới hạn tối thiểu tọa độ (X, Z)")]
-        [SerializeField] private Vector2 minBounds = new Vector2(-40f, -40f);
+        [SerializeField] private Vector2 minBounds = new Vector2(-25f, -25f);
         [Tooltip("Giới hạn tối đa tọa độ (X, Z)")]
-        [SerializeField] private Vector2 maxBounds = new Vector2(40f, 40f);
+        [SerializeField] private Vector2 maxBounds = new Vector2(25f, 20f);
 
         // Vị trí mục tiêu nội suy mượt mà
         private Vector3 _targetPosition;
@@ -122,12 +122,12 @@ namespace KingdomDefense.Cameras
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) isSprinting = true;
 #endif
 
-            // Xử lý Edge Panning khi chuột áp sát mép màn hình
-            if (enableEdgePanning && !_isDragging)
+            // Xử lý Edge Panning khi chuột áp sát mép màn hình (chỉ khi có focus vào Game view)
+            if (enableEdgePanning && !_isDragging && Application.isFocused)
             {
                 Vector2 mousePos = GetMousePosition();
-                // Chỉ nhận khi con trỏ chuột nằm trong phạm vi cửa sổ game
-                if (mousePos.x >= 0 && mousePos.x <= Screen.width && mousePos.y >= 0 && mousePos.y <= Screen.height)
+                // Chỉ nhận khi con trỏ chuột nằm hoàn toàn trong phạm vi cửa sổ game
+                if (mousePos.x > 0 && mousePos.x < Screen.width && mousePos.y > 0 && mousePos.y < Screen.height)
                 {
                     if (mousePos.x <= edgePanThickness) inputDir.x -= 1f;
                     if (mousePos.x >= Screen.width - edgePanThickness) inputDir.x += 1f;
