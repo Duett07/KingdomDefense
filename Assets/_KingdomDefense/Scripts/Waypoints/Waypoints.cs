@@ -8,7 +8,24 @@ namespace KingdomDefense.Waypoints
     /// </summary>
     public class Waypoints : MonoBehaviour
     {
-        public static Transform[] Points { get; private set; }
+        private static Transform[] _points;
+
+        public static Transform[] Points
+        {
+            get
+            {
+                if (_points == null || _points.Length == 0)
+                {
+                    Waypoints wp = Object.FindAnyObjectByType<Waypoints>();
+                    if (wp != null)
+                    {
+                        wp.LoadPoints();
+                    }
+                }
+                return _points;
+            }
+            private set => _points = value;
+        }
 
         [Header("--- THIẾT LẬP HIỂN THỊ TRONG SCENE ---")]
         [SerializeField] private Color pathColor = Color.yellow;
@@ -25,10 +42,10 @@ namespace KingdomDefense.Waypoints
         /// </summary>
         public void LoadPoints()
         {
-            Points = new Transform[transform.childCount];
+            _points = new Transform[transform.childCount];
             for (int i = 0; i < transform.childCount; i++)
             {
-                Points[i] = transform.GetChild(i);
+                _points[i] = transform.GetChild(i);
             }
         }
 
