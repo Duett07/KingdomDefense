@@ -88,8 +88,8 @@ namespace KingdomDefense.Core
 
         private void InitializePools()
         {
-            // Tự nạp cấu hình mặc định cho đạn mũi tên nếu danh sách trống
-            EnsureDefaultArrowPoolConfig();
+            // Tự nạp cấu hình mặc định cho đạn mũi tên và đạn pháo nếu danh sách trống
+            EnsureDefaultProjectilesPoolConfig();
 
             foreach (PoolConfig config in poolConfigs)
             {
@@ -102,10 +102,11 @@ namespace KingdomDefense.Core
             }
         }
 
-        private void EnsureDefaultArrowPoolConfig()
+        private void EnsureDefaultProjectilesPoolConfig()
         {
             if (poolConfigs == null) poolConfigs = new List<PoolConfig>();
 
+            // 1. Nạp sẵn 50 viên đạn Mũi tên (Arrow)
             bool hasArrowConfig = false;
             foreach (var cfg in poolConfigs)
             {
@@ -120,11 +121,8 @@ namespace KingdomDefense.Core
             {
                 GameObject arrowPrefab = null;
 #if UNITY_EDITOR
-                arrowPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/Arrow.prefab");
-                if (arrowPrefab == null)
-                {
-                    arrowPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
-                }
+                arrowPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/Arrow.prefab") ??
+                              UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
 #endif
                 if (arrowPrefab != null)
                 {
@@ -136,6 +134,39 @@ namespace KingdomDefense.Core
                         autoExpand = true
                     });
                 }
+            }
+
+            // 2. Nạp sẵn 25 quả Đạn Pháo (CannonBall)
+            bool hasCannonConfig = false;
+            foreach (var cfg in poolConfigs)
+            {
+                if (cfg != null && (cfg.tag == "CannonBall" || (cfg.prefab != null && cfg.prefab.name.Contains("CannonBall"))))
+                {
+                    hasCannonConfig = true;
+                    break;
+                }
+            }
+
+            if (!hasCannonConfig)
+            {
+                GameObject cannonPrefab = null;
+#if UNITY_EDITOR
+                cannonPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/CannonBall.prefab");
+#endif
+                if (cannonPrefab == null)
+                {
+                    cannonPrefab = new GameObject("CannonBall_Default");
+                    cannonPrefab.AddComponent<KingdomDefense.Towers.CannonBall>();
+                    cannonPrefab.SetActive(false);
+                }
+
+                poolConfigs.Add(new PoolConfig
+                {
+                    tag = "CannonBall",
+                    prefab = cannonPrefab,
+                    initialSize = 25,
+                    autoExpand = true
+                });
             }
         }
 

@@ -100,11 +100,11 @@ namespace KingdomDefense.Build
 #if UNITY_EDITOR
             string baseP = "Assets/_KingdomDefense/Models/KayKit/";
             if (archerTowerPrefab == null)
-                archerTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/ArcherTower.prefab");
-            if (archerTowerPrefab == null)
-                archerTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_A_yellow.fbx");
+                archerTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/ArcherTower.prefab") ??
+                                   UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_A_yellow.fbx");
             if (bombTowerPrefab == null)
-                bombTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_catapult_yellow.fbx");
+                bombTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/CannonTower.prefab") ??
+                                  UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_catapult_blue.fbx");
             if (mageTowerPrefab == null)
                 mageTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_B_blue.fbx");
             if (wallPrefab == null)
@@ -219,13 +219,21 @@ namespace KingdomDefense.Build
             }
 #endif
 
-            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ
+            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ hoặc Tháp Đại Bác
             if (_selectedTowerType == TowerType.Archer)
             {
                 ArcherTower archerTower = towerInstance.GetComponent<ArcherTower>();
                 if (archerTower == null)
                 {
                     archerTower = towerInstance.AddComponent<ArcherTower>();
+                }
+            }
+            else if (_selectedTowerType == TowerType.Bomb)
+            {
+                CannonTower cannonTower = towerInstance.GetComponent<CannonTower>();
+                if (cannonTower == null)
+                {
+                    cannonTower = towerInstance.AddComponent<CannonTower>();
                 }
             }
 
