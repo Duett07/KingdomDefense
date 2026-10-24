@@ -14,12 +14,13 @@ namespace KingdomDefense.Build
         Archer,     // 100 Gold
         Bomb,       // 125 Gold
         Mage,       // 150 Gold
+        Frost,      // 175 Gold (Tháp Băng Phong làm chậm 50%)
         Wall        // 70 Gold (Tường thành / Rào chắn cản đường)
     }
 
     /// <summary>
     /// Quản lý cơ chế Xây dựng (Building System) của Kingdom Defense.
-    /// Cho phép chọn tháp từ UI hoặc phím tắt [1, 2, 3, 4],
+    /// Cho phép chọn tháp từ UI hoặc phím tắt [1..5],
     /// kiểm tra lượng vàng và đặt tháp / tường thành lên các ô Node.
     /// </summary>
     public class BuildManager : MonoBehaviour
@@ -30,12 +31,14 @@ namespace KingdomDefense.Build
         [SerializeField] private int archerCost = 100;
         [SerializeField] private int bombCost = 125;
         [SerializeField] private int mageCost = 150;
+        [SerializeField] private int frostCost = 175;
         [SerializeField] private int wallCost = 70;
 
         [Header("--- 3D PREFABS CÔNG TRÌNH ---")]
         [SerializeField] private GameObject archerTowerPrefab;
         [SerializeField] private GameObject bombTowerPrefab;
         [SerializeField] private GameObject mageTowerPrefab;
+        [SerializeField] private GameObject frostTowerPrefab;
         [SerializeField] private GameObject wallPrefab;
         [SerializeField] private Material kayKitMaterial;
 
@@ -45,6 +48,7 @@ namespace KingdomDefense.Build
         public int ArcherCost => archerCost;
         public int BombCost => bombCost;
         public int MageCost => mageCost;
+        public int FrostCost => frostCost;
         public int WallCost => wallCost;
 
         private void Awake()
@@ -57,8 +61,8 @@ namespace KingdomDefense.Build
 
         private void Update()
         {
-            // Hỗ trợ phím tắt số [1], [2], [3], [4] để chọn công trình nhanh
-            bool key1 = false, key2 = false, key3 = false, key4 = false, keyEsc = false;
+            // Hỗ trợ phím tắt số [1], [2], [3], [4], [5] để chọn công trình nhanh
+            bool key1 = false, key2 = false, key3 = false, key4 = false, key5 = false, keyEsc = false;
 
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
@@ -67,12 +71,13 @@ namespace KingdomDefense.Build
                 key2 = Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame;
                 key3 = Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame;
                 key4 = Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame;
+                key5 = Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame;
                 keyEsc = Keyboard.current.escapeKey.wasPressedThisFrame;
             }
 #endif
 
             // Fallback sang Legacy Input nếu New Input System không kích hoạt
-            if (!key1 && !key2 && !key3 && !key4 && !keyEsc)
+            if (!key1 && !key2 && !key3 && !key4 && !key5 && !keyEsc)
             {
                 try
                 {
@@ -80,6 +85,7 @@ namespace KingdomDefense.Build
                     key2 = Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2);
                     key3 = Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3);
                     key4 = Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4);
+                    key5 = Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5);
                     keyEsc = Input.GetKeyDown(KeyCode.Escape);
                 }
                 catch (System.InvalidOperationException) { }
@@ -88,7 +94,8 @@ namespace KingdomDefense.Build
             if (key1) SelectTowerToBuild(TowerType.Archer);
             else if (key2) SelectTowerToBuild(TowerType.Bomb);
             else if (key3) SelectTowerToBuild(TowerType.Mage);
-            else if (key4) SelectTowerToBuild(TowerType.Wall);
+            else if (key4) SelectTowerToBuild(TowerType.Frost);
+            else if (key5) SelectTowerToBuild(TowerType.Wall);
             else if (keyEsc) SelectTowerToBuild(TowerType.None);
         }
 
@@ -107,6 +114,8 @@ namespace KingdomDefense.Build
                                   UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_catapult_blue.fbx");
             if (mageTowerPrefab == null)
                 mageTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_B_blue.fbx");
+            if (frostTowerPrefab == null)
+                frostTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_A_blue.fbx");
             if (wallPrefab == null)
                 wallPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/neutral/wall_straight.fbx");
             if (kayKitMaterial == null)
@@ -153,6 +162,7 @@ namespace KingdomDefense.Build
                 TowerType.Archer => archerCost,
                 TowerType.Bomb => bombCost,
                 TowerType.Mage => mageCost,
+                TowerType.Frost => frostCost,
                 TowerType.Wall => wallCost,
                 _ => 0
             };
@@ -181,6 +191,7 @@ namespace KingdomDefense.Build
                 TowerType.Archer => archerTowerPrefab,
                 TowerType.Bomb => bombTowerPrefab,
                 TowerType.Mage => mageTowerPrefab,
+                TowerType.Frost => frostTowerPrefab,
                 TowerType.Wall => wallPrefab,
                 _ => null
             };
@@ -219,7 +230,16 @@ namespace KingdomDefense.Build
             }
 #endif
 
-            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ, Tháp Đại Bác hoặc Tháp Pháp Sư
+            // Gán vật liệu chuẩn KayKit cho phần kiến trúc cơ sở trước khi gắn chi tiết nhân vật/ngọc
+            if (kayKitMaterial != null)
+            {
+                foreach (Renderer r in towerInstance.GetComponentsInChildren<Renderer>())
+                {
+                    r.sharedMaterial = kayKitMaterial;
+                }
+            }
+
+            // Đảm bảo gắn script chuyên biệt cho từng loại Tháp
             if (_selectedTowerType == TowerType.Archer)
             {
                 ArcherTower archerTower = towerInstance.GetComponent<ArcherTower>();
@@ -244,13 +264,12 @@ namespace KingdomDefense.Build
                     mageTower = towerInstance.AddComponent<MageTower>();
                 }
             }
-
-            // Gán vật liệu chuẩn KayKit
-            if (kayKitMaterial != null)
+            else if (_selectedTowerType == TowerType.Frost)
             {
-                foreach (Renderer r in towerInstance.GetComponentsInChildren<Renderer>())
+                FrostTower frostTower = towerInstance.GetComponent<FrostTower>();
+                if (frostTower == null)
                 {
-                    r.sharedMaterial = kayKitMaterial;
+                    frostTower = towerInstance.AddComponent<FrostTower>();
                 }
             }
 

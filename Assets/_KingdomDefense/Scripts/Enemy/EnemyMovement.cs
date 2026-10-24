@@ -25,10 +25,33 @@ namespace KingdomDefense.Enemy
         private bool _hasEnded = false;
         private float _walkCycle = 0f;
 
+        private float _baseSpeed;
+
         public float Speed
         {
             get => speed;
             set => speed = value;
+        }
+
+        public float BaseSpeed
+        {
+            get => _baseSpeed > 0f ? _baseSpeed : speed;
+            set => _baseSpeed = value;
+        }
+
+        public void SetSpeed(float newSpeed)
+        {
+            speed = newSpeed;
+        }
+
+        public void ResetSpeed()
+        {
+            speed = BaseSpeed;
+        }
+
+        private void Awake()
+        {
+            _baseSpeed = speed;
         }
 
         private void Start()

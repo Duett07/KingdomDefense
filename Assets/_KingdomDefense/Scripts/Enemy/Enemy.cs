@@ -68,6 +68,25 @@ namespace KingdomDefense.Enemy
             }
         }
 
+        [Header("--- HIỆU ỨNG BĂNG GIÁ (FROST SLOW) ---")]
+        private float _slowTimer = 0f;
+        private bool _isSlowed = false;
+        private GameObject _frostSlowIndicator;
+
+        public bool IsSlowed => _isSlowed;
+
+        private void Update()
+        {
+            if (_isSlowed)
+            {
+                _slowTimer -= Time.deltaTime;
+                if (_slowTimer <= 0f)
+                {
+                    RemoveSlow();
+                }
+            }
+        }
+
         private void LateUpdate()
         {
             // Luôn hướng thanh máu về phía Camera
@@ -143,6 +162,104 @@ namespace KingdomDefense.Enemy
         {
             // Sát thương phép bỏ qua hoàn toàn giáp vật lý
             TakeDamage(amount);
+        }
+
+        /// <summary>
+        /// Áp dụng hiệu ứng Làm chậm (Slow Effect) từ Tháp Băng Phong (Frost Tower).
+        /// Giảm tốc độ chạy theo tỷ lệ slowPercent và duy trì trong duration giây.
+        /// </summary>
+        public void ApplySlow(float slowPercent, float duration)
+        {
+            if (_isDead) return;
+
+            // Làm mới thời gian duy trì hiệu ứng băng giá
+            _slowTimer = duration;
+
+            if (!_isSlowed)
+            {
+                _isSlowed = true;
+                if (_movement != null)
+                {
+                    float factor = 1f - Mathf.Clamp01(slowPercent);
+                    _movement.SetSpeed(_movement.BaseSpeed * factor);
+                }
+
+                ShowFrostSlowIndicator(true);
+            }
+        }
+
+        /// <summary>
+        /// Hóa giải hiệu ứng đóng băng, khôi phục tốc độ di chuyển ban đầu.
+        /// </summary>
+        public void RemoveSlow()
+        {
+            _isSlowed = false;
+            _slowTimer = 0f;
+
+            if (_movement != null)
+            {
+                _movement.ResetSpeed();
+            }
+
+            ShowFrostSlowIndicator(false);
+        }
+
+        /// <summary>
+        /// Hiển thị vòng hào quang sương băng lam nhạt dưới chân và tinh thể tuyết trên đầu quái.
+        /// </summary>
+        private void ShowFrostSlowIndicator(bool active)
+        {
+            if (active)
+            {
+                if (_frostSlowIndicator == null)
+                {
+                    _frostSlowIndicator = new GameObject("Frost_Slow_FX");
+                    _frostSlowIndicator.transform.SetParent(transform, false);
+                    _frostSlowIndicator.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+
+                    // Vòng tròn băng giá tỏa sáng dưới chân
+                    GameObject frostRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    frostRing.name = "Frost_Ground_Ring";
+                    frostRing.transform.SetParent(_frostSlowIndicator.transform, false);
+                    frostRing.transform.localPosition = Vector3.zero;
+                    frostRing.transform.localScale = new Vector3(0.95f, 0.01f, 0.95f);
+                    Destroy(frostRing.GetComponent<Collider>());
+
+                    Renderer r = frostRing.GetComponent<Renderer>();
+                    if (r != null)
+                    {
+                        Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
+                        Material m = new Material(s);
+                        m.color = new Color(0.1f, 0.88f, 1.0f, 0.55f); // Lam băng
+                        r.sharedMaterial = m;
+                    }
+
+                    // Tinh thể tuyết bay lơ lửng cạnh thanh máu
+                    GameObject iceFlake = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    iceFlake.name = "Ice_Flake";
+                    iceFlake.transform.SetParent(_frostSlowIndicator.transform, false);
+                    iceFlake.transform.localPosition = healthBarOffset + new Vector3(-0.45f, 0.02f, 0f);
+                    iceFlake.transform.localScale = Vector3.one * 0.12f;
+                    Destroy(iceFlake.GetComponent<Collider>());
+
+                    Renderer rFlake = iceFlake.GetComponent<Renderer>();
+                    if (rFlake != null)
+                    {
+                        Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                        Material m = new Material(s);
+                        m.color = new Color(0.7f, 0.95f, 1.0f, 0.9f);
+                        rFlake.sharedMaterial = m;
+                    }
+                }
+                _frostSlowIndicator.SetActive(true);
+            }
+            else
+            {
+                if (_frostSlowIndicator != null)
+                {
+                    _frostSlowIndicator.SetActive(false);
+                }
+            }
         }
 
         private void UpdateHealthBar()
