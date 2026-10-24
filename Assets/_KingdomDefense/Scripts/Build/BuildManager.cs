@@ -1,5 +1,6 @@
 using UnityEngine;
 using KingdomDefense.UI;
+using KingdomDefense.Towers;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -98,6 +99,8 @@ namespace KingdomDefense.Build
         {
 #if UNITY_EDITOR
             string baseP = "Assets/_KingdomDefense/Models/KayKit/";
+            if (archerTowerPrefab == null)
+                archerTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/ArcherTower.prefab");
             if (archerTowerPrefab == null)
                 archerTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_A_yellow.fbx");
             if (bombTowerPrefab == null)
@@ -215,6 +218,16 @@ namespace KingdomDefense.Build
                 towerInstance.transform.SetParent(node.transform);
             }
 #endif
+
+            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ
+            if (_selectedTowerType == TowerType.Archer)
+            {
+                ArcherTower archerTower = towerInstance.GetComponent<ArcherTower>();
+                if (archerTower == null)
+                {
+                    archerTower = towerInstance.AddComponent<ArcherTower>();
+                }
+            }
 
             // Gán vật liệu chuẩn KayKit
             if (kayKitMaterial != null)

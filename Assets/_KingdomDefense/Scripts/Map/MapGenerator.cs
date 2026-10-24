@@ -157,7 +157,7 @@ namespace KingdomDefense.Map
             DestroyContainerChildren(waypointsContainer);
 
             // Xóa Canvas HUD cũ nếu có
-            Canvas oldCanvas = Object.FindFirstObjectByType<Canvas>();
+            Canvas oldCanvas = Object.FindAnyObjectByType<Canvas>();
             if (oldCanvas != null && oldCanvas.name.Contains("KingdomRush"))
             {
                 DestroyImmediateHelper(oldCanvas.gameObject);
@@ -220,7 +220,7 @@ namespace KingdomDefense.Map
                 cam.fieldOfView = 60f;
             }
 
-            Light sun = Object.FindFirstObjectByType<Light>();
+            Light sun = Object.FindAnyObjectByType<Light>();
             if (sun != null && sun.type == LightType.Directional)
             {
                 sun.color = new Color(1.0f, 0.96f, 0.88f); // Ánh nắng vàng ấm tươi sáng
@@ -358,19 +358,19 @@ namespace KingdomDefense.Map
             _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -7.5f));  // P09: Xuyên qua Cổng Tường Thành (wall_straight_gate)
             _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -10.5f)); // P10: Điểm đích - Trước thềm Lâu Đài Hoàng Gia!
 
-            // 12 vị trí ô cắm tháp (Node) đặt dọc 2 bên các khúc cua chiến lược
+            // 12 vị trí ô cắm tháp (Node) đặt dọc 2 bên các khúc cua chiến lược chuẩn sa bàn Kingdom Rush
             _nodePositions.Add(new Vector3(-3.2f, 0.03f, 7.2f));
-            _nodePositions.Add(new Vector3(1.5f, 0.03f, 7.2f));
-            _nodePositions.Add(new Vector3(-1.2f, 0.03f, 4.8f));
-            _nodePositions.Add(new Vector3(3.8f, 0.03f, 5.0f));
-            _nodePositions.Add(new Vector3(6.8f, 0.03f, 2.8f));
-            _nodePositions.Add(new Vector3(6.8f, 0.03f, -0.5f));
-            _nodePositions.Add(new Vector3(3.5f, 0.03f, -2.8f));
-            _nodePositions.Add(new Vector3(-0.5f, 0.03f, -1.0f));
-            _nodePositions.Add(new Vector3(-3.2f, 0.03f, -1.8f));
-            _nodePositions.Add(new Vector3(-5.2f, 0.03f, -4.5f));
-            _nodePositions.Add(new Vector3(-3.8f, 0.03f, -6.8f));
-            _nodePositions.Add(new Vector3(3.5f, 0.03f, -6.0f));
+            _nodePositions.Add(new Vector3(1.9f, 0.03f, 7.3f));
+            _nodePositions.Add(new Vector3(-1.3f, 0.03f, 4.7f));
+            _nodePositions.Add(new Vector3(4.8f, 0.03f, 5.3f));
+            _nodePositions.Add(new Vector3(7.0f, 0.03f, 3.0f));
+            _nodePositions.Add(new Vector3(7.3f, 0.03f, 0.5f));
+            _nodePositions.Add(new Vector3(4.8f, 0.03f, -2.5f));
+            _nodePositions.Add(new Vector3(-0.2f, 0.03f, -0.3f));
+            _nodePositions.Add(new Vector3(-3.4f, 0.03f, -1.8f));
+            _nodePositions.Add(new Vector3(-5.4f, 0.03f, -4.6f));
+            _nodePositions.Add(new Vector3(-3.7f, 0.03f, -7.0f));
+            _nodePositions.Add(new Vector3(3.5f, 0.03f, -5.8f));
         }
 
         /// <summary>
@@ -397,53 +397,237 @@ namespace KingdomDefense.Map
         }
 
         /// <summary>
-        /// Tạo đường mòn cát sỏi uốn lượn có viền đậm chuẩn phong cách 2D hoạt hình chuyển hóa sang 3D.
+        /// Tạo đường mòn uốn lượn mượt mà chuẩn Ribbon Mesh bằng Catmull-Rom spline:
+        /// - Lớp gờ đất mộc sẫm màu sâu bên dưới tạo chiều sâu tự nhiên.
+        /// - Mặt đường đất cát vàng nện chặt uốn cong mềm mại, không có góc cạnh thô ráp.
+        /// - Nắp tròn bo mượt tại Cổng Bắc và Thềm Lâu Đài.
+        /// - Điểm xuyết các phiến đá cuội tự nhiên dọc 2 bên lề đường.
         /// </summary>
         private void GenerateCurvedRoad()
         {
-            for (int i = 0; i < _roadCurvePoints.Count - 1; i++)
+            if (_roadCurvePoints == null || _roadCurvePoints.Count < 2) return;
+
+            // 1. Tính toán chuỗi điểm spline Catmull-Rom mượt mà
+            List<Vector3> splinePoints = GenerateCatmullRomSplinePoints(_roadCurvePoints, 8);
+
+            // 2. Lớp gờ đất mộc sẫm màu / móng đường uốn lượn (rộng hơn và nằm dưới)
+            CreateRoadRibbonMesh("Road_Shoulder_Base", splinePoints, roadWidth + 0.55f, 0.012f, roadEdgeColor, 0.03f);
+
+            // 3. Lòng đường đất cát vàng tươi nện chặt (nằm trên lớp gờ đất)
+            CreateRoadRibbonMesh("Road_Surface_Main", splinePoints, roadWidth, 0.022f, roadColor, 0.05f);
+
+            // 4. Bịt tròn 2 đầu đường (Cổng Bắc và Thềm Lâu Đài)
+            CreateRoadEndCaps(splinePoints, roadWidth);
+
+            // 5. Điểm xuyết các hòn đá cuội tự nhiên dọc 2 bên lề đường
+            DecorateRoadEdges(splinePoints, roadWidth);
+        }
+
+        private List<Vector3> GenerateCatmullRomSplinePoints(List<Vector3> controlPoints, int subdivisions)
+        {
+            List<Vector3> result = new List<Vector3>();
+            int count = controlPoints.Count;
+            if (count < 2) return result;
+
+            for (int i = 0; i < count - 1; i++)
             {
-                Vector3 pA = _roadCurvePoints[i];
-                Vector3 pB = _roadCurvePoints[i + 1];
-                CreateRoadSegment(pA, pB, roadWidth);
+                Vector3 p0 = i > 0 ? controlPoints[i - 1] : 2f * controlPoints[0] - controlPoints[1];
+                Vector3 p1 = controlPoints[i];
+                Vector3 p2 = controlPoints[i + 1];
+                Vector3 p3 = (i + 2 < count) ? controlPoints[i + 2] : 2f * controlPoints[count - 1] - controlPoints[count - 2];
+
+                int steps = (i == count - 2) ? subdivisions + 1 : subdivisions;
+                for (int s = 0; s < steps; s++)
+                {
+                    float t = s / (float)subdivisions;
+                    result.Add(GetCatmullRomPoint(t, p0, p1, p2, p3));
+                }
+            }
+            return result;
+        }
+
+        private Vector3 GetCatmullRomPoint(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
+        {
+            float t2 = t * t;
+            float t3 = t2 * t;
+            float x = 0.5f * ((2f * p1.x) + (-p0.x + p2.x) * t + (2f * p0.x - 5f * p1.x + 4f * p2.x - p3.x) * t2 + (-p0.x + 3f * p1.x - 3f * p2.x + p3.x) * t3);
+            float y = 0.5f * ((2f * p1.y) + (-p0.y + p2.y) * t + (2f * p0.y - 5f * p1.y + 4f * p2.y - p3.y) * t2 + (-p0.y + 3f * p1.y - 3f * p2.y + p3.y) * t3);
+            float z = 0.5f * ((2f * p1.z) + (-p0.z + p2.z) * t + (2f * p0.z - 5f * p1.z + 4f * p2.z - p3.z) * t2 + (-p0.z + 3f * p1.z - 3f * p2.z + p3.z) * t3);
+            return new Vector3(x, y, z);
+        }
+
+        private GameObject CreateRoadRibbonMesh(string name, List<Vector3> points, float width, float yOffset, Color color, float glossiness)
+        {
+            int count = points.Count;
+            if (count < 2) return null;
+
+            Vector3[] vertices = new Vector3[count * 2];
+            Vector3[] normals = new Vector3[count * 2];
+            Vector2[] uvs = new Vector2[count * 2];
+            int[] triangles = new int[(count - 1) * 6];
+
+            float halfWidth = width * 0.5f;
+            float accumulatedDist = 0f;
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 curr = points[i];
+                if (i > 0)
+                {
+                    accumulatedDist += Vector3.Distance(curr, points[i - 1]);
+                }
+
+                Vector3 forward;
+                if (i == 0)
+                {
+                    forward = (points[1] - curr).normalized;
+                }
+                else if (i == count - 1)
+                {
+                    forward = (curr - points[i - 1]).normalized;
+                }
+                else
+                {
+                    forward = (points[i + 1] - points[i - 1]).normalized;
+                }
+                forward.y = 0f;
+                if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
+                else forward.Normalize();
+
+                Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+
+                Vector3 leftPos = curr - right * halfWidth + new Vector3(0f, yOffset, 0f);
+                Vector3 rightPos = curr + right * halfWidth + new Vector3(0f, yOffset, 0f);
+
+                int vLeft = i * 2;
+                int vRight = i * 2 + 1;
+
+                vertices[vLeft] = leftPos;
+                vertices[vRight] = rightPos;
+
+                normals[vLeft] = Vector3.up;
+                normals[vRight] = Vector3.up;
+
+                uvs[vLeft] = new Vector2(0f, accumulatedDist * 0.4f);
+                uvs[vRight] = new Vector2(1f, accumulatedDist * 0.4f);
+
+                if (i < count - 1)
+                {
+                    int tIndex = i * 6;
+                    int nLeft = (i + 1) * 2;
+                    int nRight = (i + 1) * 2 + 1;
+
+                    triangles[tIndex + 0] = vLeft;
+                    triangles[tIndex + 1] = nLeft;
+                    triangles[tIndex + 2] = vRight;
+
+                    triangles[tIndex + 3] = vRight;
+                    triangles[tIndex + 4] = nLeft;
+                    triangles[tIndex + 5] = nRight;
+                }
+            }
+
+            Mesh mesh = new Mesh();
+            mesh.name = name + "_Mesh";
+            mesh.vertices = vertices;
+            mesh.normals = normals;
+            mesh.uv = uvs;
+            mesh.triangles = triangles;
+            mesh.RecalculateBounds();
+
+            GameObject ribbonObj = new GameObject(name);
+            ribbonObj.transform.SetParent(roadContainer);
+            ribbonObj.transform.localPosition = Vector3.zero;
+
+            MeshFilter mf = ribbonObj.AddComponent<MeshFilter>();
+            mf.sharedMesh = mesh;
+
+            MeshRenderer mr = ribbonObj.AddComponent<MeshRenderer>();
+            Material mat = new Material(Shader.Find("Standard") ?? Shader.Find("Diffuse"));
+            mat.color = color;
+            mat.SetFloat("_Glossiness", glossiness);
+            mat.SetFloat("_Metallic", 0f);
+#if UNITY_EDITOR
+            if (!Application.isPlaying) mr.sharedMaterial = mat;
+            else mr.material = mat;
+#else
+            mr.material = mat;
+#endif
+
+            return ribbonObj;
+        }
+
+        private void CreateRoadEndCaps(List<Vector3> points, float width)
+        {
+            if (points == null || points.Count < 2) return;
+
+            // Nắp tròn đầu đường (Cổng Bắc)
+            CreateCapDisc("Road_Start_Shoulder_Cap", points[0], width + 0.55f, 0.012f, roadEdgeColor, 0.03f);
+            CreateCapDisc("Road_Start_Surface_Cap", points[0], width, 0.022f, roadColor, 0.05f);
+
+            // Nắp tròn cuối đường (Thềm Lâu Đài)
+            CreateCapDisc("Road_End_Shoulder_Cap", points[points.Count - 1], width + 0.55f, 0.012f, roadEdgeColor, 0.03f);
+            CreateCapDisc("Road_End_Surface_Cap", points[points.Count - 1], width, 0.022f, roadColor, 0.05f);
+        }
+
+        private void CreateCapDisc(string name, Vector3 pos, float diameter, float yOffset, Color color, float glossiness)
+        {
+            GameObject disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            disc.name = name;
+            disc.transform.SetParent(roadContainer);
+            disc.transform.position = pos + new Vector3(0f, yOffset, 0f);
+            disc.transform.localScale = new Vector3(diameter, 0.01f, diameter);
+            SetMaterial(disc, color, glossiness);
+            DestroyImmediateHelper(disc.GetComponent<Collider>());
+        }
+
+        private void DecorateRoadEdges(List<Vector3> points, float width)
+        {
+            float halfWidth = width * 0.5f;
+            // Đặt các phiến đá cuội tự nhiên ở các khúc cua chiến lược
+            int[] pebbleIndices = new int[] { 10, 22, 34, 46, 58, 68 };
+            for (int i = 0; i < pebbleIndices.Length; i++)
+            {
+                int idx = pebbleIndices[i];
+                if (idx <= 0 || idx >= points.Count - 1) continue;
+
+                Vector3 curr = points[idx];
+                Vector3 forward = (points[idx + 1] - points[idx - 1]).normalized;
+                forward.y = 0f;
+                Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+
+                // Xen kẽ bên trái và bên phải khúc cua
+                float side = (i % 2 == 0) ? 1f : -1f;
+                Vector3 pebblePos = curr + right * (side * (halfWidth + 0.38f));
+                pebblePos.y = 0.02f;
+
+                GameObject rockModel = (i % 2 == 0) ? (rockPrefab ?? rockBPrefab) : (rockBPrefab ?? rockPrefab);
+                if (rockModel != null)
+                {
+                    float scale = 0.28f + (i % 3) * 0.06f;
+                    Quaternion rot = Quaternion.Euler(0f, (i * 73f) % 360f, 0f);
+                    InstantiateModel(rockModel, pebblePos, rot, roadContainer, scale);
+                }
+                else
+                {
+                    GameObject pebble = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    pebble.name = $"Road_Pebble_{i}";
+                    pebble.transform.SetParent(roadContainer);
+                    pebble.transform.position = pebblePos;
+                    pebble.transform.localScale = new Vector3(0.25f, 0.12f, 0.28f);
+                    pebble.transform.rotation = Quaternion.Euler(0f, i * 45f, 0f);
+                    SetMaterial(pebble, new Color(0.52f, 0.50f, 0.48f), 0.1f);
+                    DestroyImmediateHelper(pebble.GetComponent<Collider>());
+                }
             }
         }
 
-        private void CreateRoadSegment(Vector3 from, Vector3 to, float width)
-        {
-            Vector3 mid = (from + to) * 0.5f;
-            float dist = Vector3.Distance(from, to);
-            Vector3 dir = (to - from).normalized;
-
-            // 1. Viền ngoài đậm nét chuẩn hoạt hình Kingdom Rush
-            GameObject border = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            border.name = "Road_Border";
-            border.transform.SetParent(roadContainer);
-            border.transform.position = mid + new Vector3(0f, 0.01f, 0f);
-            border.transform.localScale = new Vector3(width + 0.35f, 0.02f, dist + 0.35f);
-            border.transform.rotation = Quaternion.LookRotation(dir);
-            SetMaterial(border, roadEdgeColor, 0.05f);
-
-            // 2. Lòng đường đất cát vàng
-            GameObject road = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            road.name = "Road_Surface";
-            road.transform.SetParent(roadContainer);
-            road.transform.position = mid + new Vector3(0f, 0.02f, 0f);
-            road.transform.localScale = new Vector3(width, 0.025f, dist + 0.08f);
-            road.transform.rotation = Quaternion.LookRotation(dir);
-            SetMaterial(road, roadColor, 0.05f);
-
-            // 3. Khớp nối tròn bo mịn giữa các đoạn uốn
-            GameObject cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            cap.name = "Road_Joint";
-            cap.transform.SetParent(roadContainer);
-            cap.transform.position = from + new Vector3(0f, 0.022f, 0f);
-            cap.transform.localScale = new Vector3(width, 0.025f, width);
-            SetMaterial(cap, roadColor, 0.05f);
-        }
-
         /// <summary>
-        /// Tạo 12 ô cắm tháp chuẩn Kingdom Rush: Gò đất cát tròn cắm biển gỗ hình khiên.
+        /// Tạo 12 ô cắm tháp chuẩn Hoàng Gia Kingdom Rush:
+        /// - Chân đế đất sẫm (Soil_Rim) bo tự nhiên vào nền cỏ
+        /// - Bệ đá hoa cương chắt chiu (Granite_Platform) với 8 viên đá then (Keystone) bao quanh
+        /// - Quảng trường lát đá mộc (Foundation_Plaza) là bề mặt đổi màu highlight khi rê chuột
+        /// - Huy hiệu trung tâm bằng đồng cổ (Center_Marker) tự động ẩn khi xây tháp xong.
         /// </summary>
         private void GenerateKingdomRushNodes()
         {
@@ -454,43 +638,94 @@ namespace KingdomDefense.Map
                 nodeObj.transform.position = pos;
                 nodeObj.transform.SetParent(nodesContainer);
 
-                // 1. Gò cát tròn cắm tháp
-                GameObject sandPatch = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                sandPatch.name = "Sand_Patch";
-                sandPatch.transform.SetParent(nodeObj.transform);
-                sandPatch.transform.position = pos + new Vector3(0f, 0.025f, 0f);
-                sandPatch.transform.localScale = new Vector3(1.5f, 0.03f, 1.5f);
-                SetMaterial(sandPatch, new Color(0.88f, 0.85f, 0.62f), 0.05f);
+                // 1. Viền đất sẫm ngoài cùng hòa vào cỏ
+                GameObject soilRim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                soilRim.name = "Soil_Rim";
+                soilRim.transform.SetParent(nodeObj.transform);
+                soilRim.transform.position = pos + new Vector3(0f, 0.015f, 0f);
+                soilRim.transform.localScale = new Vector3(2.35f, 0.02f, 2.35f);
+                SetMaterial(soilRim, new Color(0.30f, 0.26f, 0.18f), 0.03f);
+                DestroyImmediateHelper(soilRim.GetComponent<Collider>());
 
-                // 2. Viền đất sẫm
-                GameObject rim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                rim.name = "Sand_Rim";
-                rim.transform.SetParent(nodeObj.transform);
-                rim.transform.position = pos + new Vector3(0f, 0.015f, 0f);
-                rim.transform.localScale = new Vector3(1.75f, 0.02f, 1.75f);
-                SetMaterial(rim, new Color(0.45f, 0.48f, 0.28f), 0.05f);
+                // 2. Thềm đá hoa cương nâng cao
+                GameObject granitePlatform = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                granitePlatform.name = "Granite_Platform";
+                granitePlatform.transform.SetParent(nodeObj.transform);
+                granitePlatform.transform.position = pos + new Vector3(0f, 0.035f, 0f);
+                granitePlatform.transform.localScale = new Vector3(2.10f, 0.035f, 2.10f);
+                SetMaterial(granitePlatform, new Color(0.48f, 0.46f, 0.43f), 0.05f);
+                DestroyImmediateHelper(granitePlatform.GetComponent<Collider>());
 
-                // 3. Cọc gỗ cắm biển (Signpost)
-                GameObject pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                pole.name = "Sign_Pole";
-                pole.transform.SetParent(nodeObj.transform);
-                pole.transform.position = pos + new Vector3(0f, 0.35f, 0f);
-                pole.transform.localScale = new Vector3(0.08f, 0.35f, 0.08f);
-                SetMaterial(pole, pineTrunkColor, 0.1f);
+                // 3. 8 khối đá then (Keystones) viền xung quanh gờ đá
+                for (int k = 0; k < 8; k++)
+                {
+                    float angleRad = k * Mathf.PI / 4f;
+                    float angleDeg = k * 45f;
+                    Vector3 stoneOffset = new Vector3(Mathf.Cos(angleRad) * 0.98f, 0.045f, Mathf.Sin(angleRad) * 0.98f);
 
-                // 4. Biển gỗ hình khiên
-                GameObject board = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                board.name = "Sign_Board";
-                board.transform.SetParent(nodeObj.transform);
-                board.transform.position = pos + new Vector3(0f, 0.65f, 0f);
-                board.transform.localScale = new Vector3(0.42f, 0.35f, 0.08f);
-                board.transform.rotation = Quaternion.Euler(20f, 0f, 0f); // Nghiêng nhẹ về camera
-                SetMaterial(board, new Color(0.92f, 0.88f, 0.75f), 0.1f);
+                    GameObject keystone = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    keystone.name = $"Keystone_{k}";
+                    keystone.transform.SetParent(nodeObj.transform);
+                    keystone.transform.position = pos + stoneOffset;
+                    keystone.transform.localScale = new Vector3(0.22f, 0.045f, 0.22f);
+                    keystone.transform.rotation = Quaternion.Euler(0f, -angleDeg + 90f, 0f);
+                    SetMaterial(keystone, new Color(0.58f, 0.56f, 0.52f), 0.05f);
+                    DestroyImmediateHelper(keystone.GetComponent<Collider>());
+                }
 
-                // Gắn BoxCollider để nhận click chuột
+                // 4. Quảng trường đá mộc flagstone (Bề mặt Node dùng cho Highlight rê chuột)
+                GameObject plaza = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                plaza.name = "Foundation_Plaza";
+                plaza.transform.SetParent(nodeObj.transform);
+                plaza.transform.position = pos + new Vector3(0f, 0.055f, 0f);
+                plaza.transform.localScale = new Vector3(1.75f, 0.025f, 1.75f);
+                SetMaterial(plaza, new Color(0.70f, 0.67f, 0.62f), 0.05f);
+                DestroyImmediateHelper(plaza.GetComponent<Collider>());
+
+                // 5. Huy hiệu trung tâm bằng đồng (Center_Marker) tự động ẩn khi tháp được xây
+                GameObject centerMarker = new GameObject("Center_Marker");
+                centerMarker.transform.SetParent(nodeObj.transform);
+                centerMarker.transform.position = pos + new Vector3(0f, 0.07f, 0f);
+
+                // 5a. Đĩa huy hiệu đồng cổ
+                GameObject medallion = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                medallion.name = "Medallion_Disc";
+                medallion.transform.SetParent(centerMarker.transform);
+                medallion.transform.position = pos + new Vector3(0f, 0.07f, 0f);
+                medallion.transform.localScale = new Vector3(0.75f, 0.012f, 0.75f);
+                SetMaterial(medallion, new Color(0.78f, 0.64f, 0.28f), 0.25f);
+                DestroyImmediateHelper(medallion.GetComponent<Collider>());
+
+                // 5b. Thanh rèn chữ thập thợ xây hoàng gia
+                GameObject barX = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                barX.name = "Cross_Bar_X";
+                barX.transform.SetParent(centerMarker.transform);
+                barX.transform.position = pos + new Vector3(0f, 0.078f, 0f);
+                barX.transform.localScale = new Vector3(0.10f, 0.015f, 0.55f);
+                SetMaterial(barX, new Color(0.38f, 0.32f, 0.22f), 0.15f);
+                DestroyImmediateHelper(barX.GetComponent<Collider>());
+
+                GameObject barZ = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                barZ.name = "Cross_Bar_Z";
+                barZ.transform.SetParent(centerMarker.transform);
+                barZ.transform.position = pos + new Vector3(0f, 0.078f, 0f);
+                barZ.transform.localScale = new Vector3(0.55f, 0.015f, 0.10f);
+                SetMaterial(barZ, new Color(0.38f, 0.32f, 0.22f), 0.15f);
+                DestroyImmediateHelper(barZ.GetComponent<Collider>());
+
+                // 5c. Tán đinh vàng ở tâm
+                GameObject rivet = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                rivet.name = "Center_Rivet";
+                rivet.transform.SetParent(centerMarker.transform);
+                rivet.transform.position = pos + new Vector3(0f, 0.088f, 0f);
+                rivet.transform.localScale = new Vector3(0.16f, 0.035f, 0.16f);
+                SetMaterial(rivet, new Color(0.95f, 0.82f, 0.35f), 0.35f);
+                DestroyImmediateHelper(rivet.GetComponent<Collider>());
+
+                // Gắn BoxCollider để nhận click chuột dễ dàng
                 BoxCollider col = nodeObj.AddComponent<BoxCollider>();
-                col.size = new Vector3(1.5f, 0.8f, 1.5f);
-                col.center = new Vector3(0f, 0.4f, 0f);
+                col.size = new Vector3(2.2f, 0.8f, 2.2f);
+                col.center = new Vector3(0f, 0.35f, 0f);
 
                 // Gắn script Node
                 nodeObj.AddComponent<Node>();
@@ -753,22 +988,24 @@ namespace KingdomDefense.Map
                 InstantiateModel(towerToUse, new Vector3(rightX, 0f, backZ), Quaternion.identity, landmarksContainer, wallScale);
             }
 
-            // 4. TƯỜNG CÁNH TẢ (West Wall - X = -5.25f, xoay 90 độ)
+            // 4. TƯỜNG CÁNH TẢ (West Wall - X = -5.25f, xoay 90 độ, khép kín 100% nối liền 2 tháp góc Tây Bắc và Tây Nam)
             if (wallStraightPrefab != null)
             {
                 Quaternion rotSide = Quaternion.Euler(0f, 90f, 0f);
-                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -9.7f), rotSide, landmarksContainer, wallScale);
-                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -11.9f), rotSide, landmarksContainer, wallScale);
-                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -14.1f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -8.6f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -10.8f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -13.0f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(leftX, 0f, -15.2f), rotSide, landmarksContainer, wallScale);
             }
 
-            // 5. TƯỜNG CÁNH HỮU (East Wall - X = 7.95f, xoay 90 độ)
+            // 5. TƯỜNG CÁNH HỮU (East Wall - X = 7.95f, xoay 90 độ, khép kín 100% nối liền 2 tháp góc Đông Bắc và Đông Nam)
             if (wallStraightPrefab != null)
             {
                 Quaternion rotSide = Quaternion.Euler(0f, 90f, 0f);
-                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -9.7f), rotSide, landmarksContainer, wallScale);
-                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -11.9f), rotSide, landmarksContainer, wallScale);
-                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -14.1f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -8.6f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -10.8f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -13.0f), rotSide, landmarksContainer, wallScale);
+                InstantiateModel(wallStraightPrefab, new Vector3(rightX, 0f, -15.2f), rotSide, landmarksContainer, wallScale);
             }
 
             // 6. TƯỜNG HẬU PHÍA SAU (South Wall - Z = -16.3f, xoay 180 độ khép kín 100%)
@@ -996,12 +1233,25 @@ namespace KingdomDefense.Map
         private void GenerateKingdomRushHUD()
         {
             // 0. Đảm bảo BuildManager tồn tại trong Scene
-            BuildManager bm = Object.FindFirstObjectByType<BuildManager>();
+            BuildManager bm = Object.FindAnyObjectByType<BuildManager>();
             if (bm == null)
             {
                 GameObject bmObj = new GameObject("BuildManager");
                 bm = bmObj.AddComponent<BuildManager>();
                 bm.TryLoadDefaultAssets();
+            }
+
+            // 0.1. Đảm bảo EventSystem tồn tại để bắt sự kiện click chuột cho toàn bộ UI
+            UnityEngine.EventSystems.EventSystem es = Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
+            if (es == null)
+            {
+                GameObject esObj = new GameObject("EventSystem");
+                esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+#if ENABLE_INPUT_SYSTEM
+                esObj.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+#else
+                esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+#endif
             }
 
             // Kiểm tra Canvas cũ
@@ -1173,12 +1423,23 @@ namespace KingdomDefense.Map
             cardObj.transform.SetParent(parent, false);
             RectTransform cr = cardObj.AddComponent<RectTransform>();
             cr.anchoredPosition = pos;
-            cr.sizeDelta = new Vector2(165, 95);
+            cr.sizeDelta = new Vector2(170, 95);
 
-            // Nền thẻ
+            // Nền thẻ sẫm màu sang trọng
             Image bg = cardObj.AddComponent<Image>();
-            bg.color = new Color(0.18f, 0.20f, 0.25f, 0.95f);
+            bg.color = new Color(0.14f, 0.17f, 0.23f, 0.95f);
+            bg.raycastTarget = true; // Chỉ duy nhất nền thẻ nhận tia click chuột!
+
             outButton = cardObj.AddComponent<Button>();
+            outButton.targetGraphic = bg;
+
+            ColorBlock cb = outButton.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(1.25f, 1.25f, 1.35f, 1f);
+            cb.pressedColor = new Color(0.85f, 0.85f, 0.9f, 1f);
+            cb.selectedColor = Color.white;
+            cb.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.65f);
+            outButton.colors = cb;
 
             // Viền Highlight khi được chọn
             GameObject hlObj = new GameObject("HighlightBorder");
@@ -1186,15 +1447,16 @@ namespace KingdomDefense.Map
             RectTransform hr = hlObj.AddComponent<RectTransform>();
             hr.anchorMin = Vector2.zero;
             hr.anchorMax = Vector2.one;
-            hr.sizeDelta = new Vector2(6, 6);
+            hr.sizeDelta = new Vector2(8, 8);
             outHighlight = hlObj.AddComponent<Image>();
             outHighlight.color = new Color(1f, 1f, 1f, 0f); // Mặc định ẩn
+            outHighlight.raycastTarget = false; // Tuyệt đối không chặn chuột!
 
             // Tên tháp & Hotkey
             GameObject titleObj = new GameObject("Title");
             titleObj.transform.SetParent(cardObj.transform, false);
             RectTransform tr = titleObj.AddComponent<RectTransform>();
-            tr.anchorMin = new Vector2(0f, 0.5f);
+            tr.anchorMin = new Vector2(0f, 0.48f);
             tr.anchorMax = new Vector2(1f, 1f);
             tr.offsetMin = new Vector2(5, 0);
             tr.offsetMax = new Vector2(-5, -5);
@@ -1203,21 +1465,22 @@ namespace KingdomDefense.Map
             titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (titleText.font == null) titleText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             titleText.text = towerName;
-            titleText.fontSize = 17;
+            titleText.fontSize = 18;
             titleText.fontStyle = FontStyle.Bold;
-            titleText.color = Color.white;
+            titleText.color = new Color(1f, 0.96f, 0.85f); // Trắng ngà sắc nét
             titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.raycastTarget = false; // Không chặn tia click chuột!
 
             Outline to = titleObj.AddComponent<Outline>();
-            to.effectColor = Color.black;
-            to.effectDistance = new Vector2(1, -1);
+            to.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            to.effectDistance = new Vector2(1.5f, -1.5f);
 
             // Giá vàng (Cost)
             GameObject costObj = new GameObject("Cost");
             costObj.transform.SetParent(cardObj.transform, false);
             RectTransform cor = costObj.AddComponent<RectTransform>();
             cor.anchorMin = new Vector2(0f, 0f);
-            cor.anchorMax = new Vector2(1f, 0.5f);
+            cor.anchorMax = new Vector2(1f, 0.48f);
             cor.offsetMin = new Vector2(5, 5);
             cor.offsetMax = new Vector2(-5, 0);
 
@@ -1225,14 +1488,15 @@ namespace KingdomDefense.Map
             outCostText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (outCostText.font == null) outCostText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             outCostText.text = $"{costStr} 🪙";
-            outCostText.fontSize = 18;
+            outCostText.fontSize = 20;
             outCostText.fontStyle = FontStyle.Bold;
-            outCostText.color = new Color(1f, 0.88f, 0.25f);
+            outCostText.color = new Color(1f, 0.88f, 0.25f); // Vàng kim rực rỡ
             outCostText.alignment = TextAnchor.MiddleCenter;
+            outCostText.raycastTarget = false; // Không chặn tia click chuột!
 
             Outline co = costObj.AddComponent<Outline>();
-            co.effectColor = Color.black;
-            co.effectDistance = new Vector2(1, -1);
+            co.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            co.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
         private void CreateBadgeItem(Transform parent, Vector2 pos, Sprite iconSprite, string defaultText, Color textColor, out Text outText)
@@ -1324,10 +1588,17 @@ namespace KingdomDefense.Map
             Renderer r = obj.GetComponent<Renderer>();
             if (r != null)
             {
-                Material m = new Material(Shader.Find("Standard"));
+                Material m = new Material(Shader.Find("Standard") ?? Shader.Find("Diffuse"));
                 m.color = color;
                 m.SetFloat("_Glossiness", glossiness);
                 m.SetFloat("_Metallic", 0f);
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    r.sharedMaterial = m;
+                    return;
+                }
+#endif
                 r.material = m;
             }
         }
