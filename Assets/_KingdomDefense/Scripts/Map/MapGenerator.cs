@@ -91,6 +91,7 @@ namespace KingdomDefense.Map
         private void Awake()
         {
             EnsureWaveSpawner();
+            EnsureObjectPool();
 
             // Nếu sa bàn đã được sinh trong Scene (MapGenerator đã có các GameObject con), giữ nguyên và không làm gì cả
             if (transform.childCount > 0)
@@ -114,6 +115,16 @@ namespace KingdomDefense.Map
             }
         }
 
+        private void EnsureObjectPool()
+        {
+            if (Object.FindAnyObjectByType<KingdomDefense.Core.ObjectPool>() == null)
+            {
+                GameObject poolObj = new GameObject("ObjectPool");
+                poolObj.transform.SetParent(transform);
+                poolObj.AddComponent<KingdomDefense.Core.ObjectPool>();
+            }
+        }
+
         /// <summary>
         /// Tạo toàn bộ Sa bàn & Giao diện chuẩn phong cách Kingdom Rush bằng 3D Assets KayKit.
         /// </summary>
@@ -121,6 +132,7 @@ namespace KingdomDefense.Map
         public void GenerateMap()
         {
             ClearMap();
+            EnsureObjectPool();
             SetupContainers();
             TryLoadUISprites();
             TryLoadKayKitAssets();

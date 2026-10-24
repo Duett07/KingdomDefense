@@ -1,14 +1,15 @@
 using UnityEngine;
 using KingdomDefense.Enemy;
+using KingdomDefense.Core;
 
 namespace KingdomDefense.Towers
 {
     /// <summary>
     /// Đạn tên bay đuổi mục tiêu (Homing Arrow) của Tháp Xạ Thủ.
-    /// Tự động uốn lượn bám theo quái vật đang di chuyển, có vệt bay ánh sáng (Trail)
-    /// và gây sát thương vật lý khi chạm đích qua TakeDamage(damage).
+    /// Tự động uốn lượn bám theo quái vật đang di chuyển, có vệt bay ánh sáng (Trail),
+    /// tương thích với Object Pool (IPoolable) và gây sát thương vật lý qua TakeDamage(damage).
     /// </summary>
-    public class Arrow : MonoBehaviour
+    public class Arrow : MonoBehaviour, IPoolable
     {
         [Header("--- THIẾT LẬP MŨI TÊN ---")]
         [Tooltip("Tốc độ bay của mũi tên (m/s)")]
@@ -24,6 +25,39 @@ namespace KingdomDefense.Towers
         private Vector3 _lastDirection;
         private bool _hasTarget = false;
         private bool _meshNeedsXRotation = false;
+        private float _flightTime = 0f;
+
+        public void OnSpawnFromPool()
+        {
+            _flightTime = 0f;
+            _hasTarget = false;
+            _target = null;
+            _lastDirection = Vector3.zero;
+
+            TrailRenderer trail = GetComponent<TrailRenderer>();
+            if (trail != null)
+            {
+                trail.Clear();
+            }
+        }
+
+        public void OnReturnToPool()
+        {
+            _target = null;
+            _hasTarget = false;
+        }
+
+        public void Despawn()
+        {
+            if (ObjectPool.Instance != null)
+            {
+                ObjectPool.Instance.ReturnToPool(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
 
         private void Awake()
         {
@@ -81,6 +115,14 @@ namespace KingdomDefense.Towers
 
         private void Update()
         {
+            _flightTime += Time.deltaTime;
+            // Tự động thu hồi nếu bay lạc hoặc quá thời gian tối đa
+            if (_flightTime > 4.5f)
+            {
+                Despawn();
+                return;
+            }
+
             Vector3 dir;
 
             if (_target != null)
@@ -96,7 +138,7 @@ namespace KingdomDefense.Towers
                 dir = _lastDirection;
                 if (!_hasTarget || dir == Vector3.zero)
                 {
-                    Destroy(gameObject);
+                    Despawn();
                     return;
                 }
             }
@@ -141,7 +183,7 @@ namespace KingdomDefense.Towers
                 DamageEnemy(_target);
             }
 
-            Destroy(gameObject);
+            Despawn();
         }
 
         private void DamageEnemy(Transform enemyTransform)
