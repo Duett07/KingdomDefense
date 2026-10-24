@@ -135,6 +135,16 @@ namespace KingdomDefense.Enemy
             }
         }
 
+        /// <summary>
+        /// Nhận sát thương phép thuật từ Tháp Pháp Sư (Mage Tower):
+        /// Bỏ qua 100% Giáp vật lý, trừ trực tiếp vào Máu.
+        /// </summary>
+        public void TakeMagicDamage(float amount)
+        {
+            // Sát thương phép bỏ qua hoàn toàn giáp vật lý
+            TakeDamage(amount);
+        }
+
         private void UpdateHealthBar()
         {
             if (_healthBarFill == null) return;
