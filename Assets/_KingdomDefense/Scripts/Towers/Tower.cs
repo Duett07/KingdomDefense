@@ -117,14 +117,23 @@ namespace KingdomDefense.Towers
         }
 
         /// <summary>
-        /// Bắn đạn / mũi tên bám mục tiêu.
+        /// Bắn đạn / mũi tên bám mục tiêu thông qua ObjectPool để tối ưu hiệu năng và tái sử dụng bộ đệm.
         /// </summary>
         protected virtual void Shoot()
         {
             if (projectilePrefab == null || target == null) return;
 
             Vector3 spawnPosition = (firePoint != null) ? firePoint.position : (transform.position + Vector3.up * 2.2f);
-            GameObject projObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+            GameObject projObj;
+
+            if (KingdomDefense.Core.ObjectPool.Instance != null)
+            {
+                projObj = KingdomDefense.Core.ObjectPool.Instance.Spawn(projectilePrefab, spawnPosition, Quaternion.identity);
+            }
+            else
+            {
+                projObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+            }
 
             // Gán vật liệu chuẩn KayKit cho mũi tên
             Material mat = null;
@@ -162,11 +171,12 @@ namespace KingdomDefense.Towers
                 partToRotate = transform;
             }
 
-            // Tự nạp Prefab mũi tên nếu trống
+            // Tự nạp Prefab mũi tên nếu trống (ưu tiên Prefab đã có component Arrow)
             if (projectilePrefab == null)
             {
 #if UNITY_EDITOR
-                projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
+                projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/Arrow.prefab") ??
+                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
 #endif
                 if (projectilePrefab == null)
                 {
