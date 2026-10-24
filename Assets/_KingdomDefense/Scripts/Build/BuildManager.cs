@@ -219,7 +219,7 @@ namespace KingdomDefense.Build
             }
 #endif
 
-            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ hoặc Tháp Đại Bác
+            // Đảm bảo gắn script chuyên biệt cho Tháp Cung Thủ, Tháp Đại Bác hoặc Tháp Pháp Sư
             if (_selectedTowerType == TowerType.Archer)
             {
                 ArcherTower archerTower = towerInstance.GetComponent<ArcherTower>();
@@ -234,6 +234,14 @@ namespace KingdomDefense.Build
                 if (cannonTower == null)
                 {
                     cannonTower = towerInstance.AddComponent<CannonTower>();
+                }
+            }
+            else if (_selectedTowerType == TowerType.Mage)
+            {
+                MageTower mageTower = towerInstance.GetComponent<MageTower>();
+                if (mageTower == null)
+                {
+                    mageTower = towerInstance.AddComponent<MageTower>();
                 }
             }
 
