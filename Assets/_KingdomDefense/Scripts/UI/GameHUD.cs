@@ -35,16 +35,19 @@ namespace KingdomDefense.UI
         [SerializeField] private Button archerBtn;
         [SerializeField] private Button bombBtn;
         [SerializeField] private Button mageBtn;
+        [SerializeField] private Button frostBtn;
         [SerializeField] private Button wallBtn;
 
         [SerializeField] private Image archerHighlight;
         [SerializeField] private Image bombHighlight;
         [SerializeField] private Image mageHighlight;
+        [SerializeField] private Image frostHighlight;
         [SerializeField] private Image wallHighlight;
 
         [SerializeField] private Text archerCostText;
         [SerializeField] private Text bombCostText;
         [SerializeField] private Text mageCostText;
+        [SerializeField] private Text frostCostText;
         [SerializeField] private Text wallCostText;
 
         private int _currentLives;
@@ -124,6 +127,11 @@ namespace KingdomDefense.UI
                 mageBtn.onClick.RemoveAllListeners();
                 mageBtn.onClick.AddListener(() => OnSelectTower(TowerType.Mage));
             }
+            if (frostBtn != null)
+            {
+                frostBtn.onClick.RemoveAllListeners();
+                frostBtn.onClick.AddListener(() => OnSelectTower(TowerType.Frost));
+            }
             if (wallBtn != null)
             {
                 wallBtn.onClick.RemoveAllListeners();
@@ -150,6 +158,7 @@ namespace KingdomDefense.UI
             SetHighlight(archerHighlight, type == TowerType.Archer, activeColor, normalColor);
             SetHighlight(bombHighlight, type == TowerType.Bomb, activeColor, normalColor);
             SetHighlight(mageHighlight, type == TowerType.Mage, activeColor, normalColor);
+            SetHighlight(frostHighlight, type == TowerType.Frost, activeColor, normalColor);
             SetHighlight(wallHighlight, type == TowerType.Wall, activeColor, normalColor);
         }
 
@@ -252,6 +261,7 @@ namespace KingdomDefense.UI
             SetButtonState(archerBtn, archerCostText, gold >= BuildManager.Instance.ArcherCost);
             SetButtonState(bombBtn, bombCostText, gold >= BuildManager.Instance.BombCost);
             SetButtonState(mageBtn, mageCostText, gold >= BuildManager.Instance.MageCost);
+            SetButtonState(frostBtn, frostCostText, gold >= BuildManager.Instance.FrostCost);
             SetButtonState(wallBtn, wallCostText, gold >= BuildManager.Instance.WallCost);
         }
 
@@ -319,6 +329,7 @@ namespace KingdomDefense.UI
             if (archerCostText != null) archerCostText.text = "100";
             if (bombCostText != null) bombCostText.text = "125";
             if (mageCostText != null) mageCostText.text = "150";
+            if (frostCostText != null) frostCostText.text = "175";
             if (wallCostText != null) wallCostText.text = "70";
 
             UpdateManaDisplay();
