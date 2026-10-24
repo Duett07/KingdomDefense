@@ -68,12 +68,32 @@ namespace KingdomDefense.UI
             _currentWave = 1;
             _currentMana = maxMana;
 
+            EnsureEventSystem();
             SetupButtonListeners();
             UpdateAllDisplays();
         }
 
+        /// <summary>
+        /// Đảm bảo EventSystem luôn tồn tại để các nút UI Button nhận được sự kiện Click chuột.
+        /// </summary>
+        private void EnsureEventSystem()
+        {
+            if (UnityEngine.EventSystems.EventSystem.current == null && Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+            {
+                GameObject esObj = new GameObject("EventSystem");
+                esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+#if ENABLE_INPUT_SYSTEM
+                esObj.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+#else
+                esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+#endif
+                Debug.Log("[GameHUD] Đã tự động tạo EventSystem để các nút UI nhận được click chuột!");
+            }
+        }
+
         private void Start()
         {
+            EnsureEventSystem();
             UpdateAllDisplays();
         }
 
@@ -89,10 +109,26 @@ namespace KingdomDefense.UI
 
         private void SetupButtonListeners()
         {
-            if (archerBtn != null) archerBtn.onClick.AddListener(() => OnSelectTower(TowerType.Archer));
-            if (bombBtn != null) bombBtn.onClick.AddListener(() => OnSelectTower(TowerType.Bomb));
-            if (mageBtn != null) mageBtn.onClick.AddListener(() => OnSelectTower(TowerType.Mage));
-            if (wallBtn != null) wallBtn.onClick.AddListener(() => OnSelectTower(TowerType.Wall));
+            if (archerBtn != null)
+            {
+                archerBtn.onClick.RemoveAllListeners();
+                archerBtn.onClick.AddListener(() => OnSelectTower(TowerType.Archer));
+            }
+            if (bombBtn != null)
+            {
+                bombBtn.onClick.RemoveAllListeners();
+                bombBtn.onClick.AddListener(() => OnSelectTower(TowerType.Bomb));
+            }
+            if (mageBtn != null)
+            {
+                mageBtn.onClick.RemoveAllListeners();
+                mageBtn.onClick.AddListener(() => OnSelectTower(TowerType.Mage));
+            }
+            if (wallBtn != null)
+            {
+                wallBtn.onClick.RemoveAllListeners();
+                wallBtn.onClick.AddListener(() => OnSelectTower(TowerType.Wall));
+            }
         }
 
         private void OnSelectTower(TowerType type)
@@ -108,13 +144,20 @@ namespace KingdomDefense.UI
         /// </summary>
         public void UpdateSelectedTowerUI(TowerType type)
         {
-            Color activeColor = new Color(0.2f, 1f, 0.4f, 1f);
-            Color normalColor = new Color(1f, 1f, 1f, 0f);
+            Color activeColor = new Color(0.2f, 1f, 0.45f, 0.95f); // Xanh lá dạ quang rực rỡ
+            Color normalColor = new Color(1f, 1f, 1f, 0f); // Ẩn hoàn toàn
 
-            if (archerHighlight != null) archerHighlight.color = (type == TowerType.Archer) ? activeColor : normalColor;
-            if (bombHighlight != null) bombHighlight.color = (type == TowerType.Bomb) ? activeColor : normalColor;
-            if (mageHighlight != null) mageHighlight.color = (type == TowerType.Mage) ? activeColor : normalColor;
-            if (wallHighlight != null) wallHighlight.color = (type == TowerType.Wall) ? activeColor : normalColor;
+            SetHighlight(archerHighlight, type == TowerType.Archer, activeColor, normalColor);
+            SetHighlight(bombHighlight, type == TowerType.Bomb, activeColor, normalColor);
+            SetHighlight(mageHighlight, type == TowerType.Mage, activeColor, normalColor);
+            SetHighlight(wallHighlight, type == TowerType.Wall, activeColor, normalColor);
+        }
+
+        private void SetHighlight(Image hl, bool isSelected, Color activeColor, Color normalColor)
+        {
+            if (hl == null) return;
+            hl.color = isSelected ? activeColor : normalColor;
+            hl.raycastTarget = false; // Không chặn tia click chuột
         }
 
         /// <summary>
@@ -206,20 +249,30 @@ namespace KingdomDefense.UI
             if (BuildManager.Instance == null) return;
 
             int gold = _currentGold;
-            SetButtonState(archerBtn, gold >= BuildManager.Instance.ArcherCost);
-            SetButtonState(bombBtn, gold >= BuildManager.Instance.BombCost);
-            SetButtonState(mageBtn, gold >= BuildManager.Instance.MageCost);
-            SetButtonState(wallBtn, gold >= BuildManager.Instance.WallCost);
+            SetButtonState(archerBtn, archerCostText, gold >= BuildManager.Instance.ArcherCost);
+            SetButtonState(bombBtn, bombCostText, gold >= BuildManager.Instance.BombCost);
+            SetButtonState(mageBtn, mageCostText, gold >= BuildManager.Instance.MageCost);
+            SetButtonState(wallBtn, wallCostText, gold >= BuildManager.Instance.WallCost);
         }
 
-        private void SetButtonState(Button btn, bool enabledState)
+        private void SetButtonState(Button btn, Text costText, bool enabledState)
         {
             if (btn == null) return;
             btn.interactable = enabledState;
             Image img = btn.GetComponent<Image>();
             if (img != null)
             {
-                img.color = enabledState ? Color.white : new Color(0.5f, 0.5f, 0.5f, 0.7f);
+                // Giữ màu nền thẻ sẫm màu sang trọng (Slate / Navy) thay vì biến thành màu trắng bệch
+                img.color = enabledState 
+                    ? new Color(0.14f, 0.17f, 0.23f, 0.95f) 
+                    : new Color(0.10f, 0.11f, 0.14f, 0.60f);
+            }
+
+            if (costText != null)
+            {
+                costText.color = enabledState 
+                    ? new Color(1f, 0.88f, 0.25f, 1f) 
+                    : new Color(0.95f, 0.35f, 0.35f, 0.7f);
             }
         }
 

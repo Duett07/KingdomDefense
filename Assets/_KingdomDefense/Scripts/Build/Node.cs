@@ -16,7 +16,7 @@ namespace KingdomDefense.Build
         [Tooltip("Màu báo lỗi khi ô đã có tháp hoặc không đủ vàng")]
         [SerializeField] private Color notEnoughMoneyColor = new Color(0.9f, 0.2f, 0.2f, 0.8f);
         [Tooltip("Độ lệch độ cao khi đặt tháp lên ô")]
-        [SerializeField] private Vector3 positionOffset = new Vector3(0f, 0.2f, 0f);
+        [SerializeField] private Vector3 positionOffset = new Vector3(0f, 0.06f, 0f);
 
         [Header("--- TRẠNG THÁI HIỆN TẠI ---")]
         [Tooltip("Tháp đang được đặt trên ô này (null nếu ô trống)")]
@@ -36,10 +36,16 @@ namespace KingdomDefense.Build
         private void Awake()
         {
             _originalScale = transform.localScale;
-            _renderer = GetComponent<Renderer>();
+
+            // Tìm mặt quảng trường đá Foundation_Plaza để đổi màu highlight mượt mà
+            Transform plaza = transform.Find("Foundation_Plaza");
+            if (plaza != null)
+            {
+                _renderer = plaza.GetComponent<Renderer>();
+            }
             if (_renderer == null)
             {
-                _renderer = GetComponentInChildren<Renderer>();
+                _renderer = GetComponent<Renderer>() ?? GetComponentInChildren<Renderer>();
             }
 
             if (_renderer != null)
@@ -49,12 +55,12 @@ namespace KingdomDefense.Build
                 _originalColor = _tempMaterial.color;
             }
 
-            // Đảm bảo BoxCollider có kích thước vừa vặn cho raycast
+            // Đảm bảo BoxCollider có kích thước vừa vặn bao quát toàn bộ đĩa đá tháp
             BoxCollider col = GetComponent<BoxCollider>();
-            if (col != null && col.size == Vector3.one)
+            if (col != null)
             {
-                col.size = new Vector3(1.5f, 0.8f, 1.5f);
-                col.center = new Vector3(0f, 0.4f, 0f);
+                col.size = new Vector3(2.2f, 0.8f, 2.2f);
+                col.center = new Vector3(0f, 0.35f, 0f);
             }
         }
 
@@ -65,14 +71,28 @@ namespace KingdomDefense.Build
 
             if (_renderer == null) return;
 
-            // Nếu đã có tháp, cảnh báo màu đỏ; nếu trống, highlight màu vàng sáng
+            // 1. Đã có tháp -> Đổi màu Đỏ cảnh báo
             if (HasTurret)
             {
                 _tempMaterial.color = notEnoughMoneyColor;
+                return;
+            }
+
+            // 2. Kiểm tra có đủ vàng để xây loại tháp đang chọn hay không
+            if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+            {
+                if (BuildManager.Instance.HasEnoughMoney(BuildManager.Instance.SelectedTowerType))
+                {
+                    _tempMaterial.color = hoverColor; // Xanh lá: Hợp lệ
+                }
+                else
+                {
+                    _tempMaterial.color = notEnoughMoneyColor; // Đỏ: Không đủ tiền
+                }
             }
             else
             {
-                _tempMaterial.color = hoverColor;
+                _tempMaterial.color = hoverColor; // Xanh lá mặc định
             }
         }
 
@@ -95,6 +115,12 @@ namespace KingdomDefense.Build
 
             if (BuildManager.Instance != null)
             {
+                if (BuildManager.Instance.SelectedTowerType == TowerType.None)
+                {
+                    Debug.LogWarning("[Node] Hãy click chọn loại Tháp từ thanh công cụ phía dưới màn hình trước!");
+                    return;
+                }
+
                 BuildManager.Instance.BuildTowerOn(this);
             }
             else
@@ -112,11 +138,51 @@ namespace KingdomDefense.Build
         }
 
         /// <summary>
-        /// Đặt tháp vào ô này.
+        /// Đặt tháp vào ô này kèm hiệu ứng khói bụi xây dựng.
         /// </summary>
         public void SetTurret(GameObject turret)
         {
             currentTurret = turret;
+
+            // Ẩn huy hiệu thợ xây trung tâm khi tháp đã được dựng lên
+            Transform centerMarker = transform.Find("Center_Marker");
+            if (centerMarker != null)
+            {
+                centerMarker.gameObject.SetActive(false);
+            }
+
+            SpawnBuildDustEffect(GetBuildPosition());
+        }
+
+        /// <summary>
+        /// Hiệu ứng khói bụi bung tỏa khi công trình vừa dựng xong.
+        /// </summary>
+        private void SpawnBuildDustEffect(Vector3 pos)
+        {
+            GameObject smoke = new GameObject("Build_Dust_Puff");
+            smoke.transform.position = pos;
+
+            for (int i = 0; i < 8; i++)
+            {
+                GameObject puff = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                puff.transform.SetParent(smoke.transform);
+                float angle = i * Mathf.PI * 2f / 8f;
+                Vector3 dir = new Vector3(Mathf.Cos(angle), Random.Range(0.2f, 0.6f), Mathf.Sin(angle));
+                puff.transform.localPosition = dir * Random.Range(0.3f, 0.6f);
+                puff.transform.localScale = Vector3.one * Random.Range(0.35f, 0.55f);
+                Destroy(puff.GetComponent<Collider>());
+
+                Renderer r = puff.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material mat = new Material(s);
+                    mat.color = new Color(0.9f, 0.88f, 0.82f, 0.75f);
+                    r.sharedMaterial = mat;
+                }
+            }
+
+            Destroy(smoke, 0.45f);
         }
 
         private void OnDestroy()

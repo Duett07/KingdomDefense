@@ -245,6 +245,7 @@ namespace KingdomDefense.Enemy
             }
 
             soldierObj.name = $"Soldier_{type}_W{_currentWaveIndex}_{Time.frameCount}";
+            soldierObj.tag = "Enemy";
 
             // Kích thước chuẩn tỉ lệ thành trì: ~0.50f (vừa vặn cổng thành và lòng đường mòn)
             float baseScale = GetScaleForType(type);

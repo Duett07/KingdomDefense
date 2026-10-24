@@ -96,6 +96,21 @@ namespace KingdomDefense.Enemy
         }
 
         /// <summary>
+        /// Tính tổng quãng đường còn lại của quái tới Cổng thành (dùng cho giải thuật chọn mục tiêu của tháp).
+        /// </summary>
+        public float GetDistanceToGoal()
+        {
+            if (_hasEnded || _targetPoint == null || Waypoints.Waypoints.Points == null) return 0f;
+
+            float totalDistance = Vector3.Distance(transform.position, _targetPoint.position);
+            for (int i = _waypointIndex; i < Waypoints.Waypoints.Points.Length - 1; i++)
+            {
+                totalDistance += Vector3.Distance(Waypoints.Waypoints.Points[i].position, Waypoints.Waypoints.Points[i + 1].position);
+            }
+            return totalDistance;
+        }
+
+        /// <summary>
         /// Chuyển sang điểm mốc tiếp theo dọc theo lộ trình.
         /// </summary>
         private void GetNextWaypoint()

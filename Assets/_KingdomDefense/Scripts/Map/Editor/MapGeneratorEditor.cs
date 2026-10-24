@@ -43,7 +43,7 @@ namespace KingdomDefense.Map.Editor
         [MenuItem("Tools/Kingdom Defense/▶ Generate Map & UI", false, 1)]
         public static void GenerateMapFromMenu()
         {
-            MapGenerator generator = Object.FindFirstObjectByType<MapGenerator>();
+            MapGenerator generator = Object.FindAnyObjectByType<MapGenerator>();
             if (generator == null)
             {
                 GameObject go = new GameObject("MapGenerator");
@@ -57,7 +57,7 @@ namespace KingdomDefense.Map.Editor
         [MenuItem("Tools/Kingdom Defense/✕ Clear Map", false, 2)]
         public static void ClearMapFromMenu()
         {
-            MapGenerator generator = Object.FindFirstObjectByType<MapGenerator>();
+            MapGenerator generator = Object.FindAnyObjectByType<MapGenerator>();
             if (generator != null)
             {
                 generator.ClearMap();
