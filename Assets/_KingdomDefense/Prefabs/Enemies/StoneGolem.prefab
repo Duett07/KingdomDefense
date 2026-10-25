@@ -1508,7 +1508,7 @@ GameObject:
   - component: {fileID: 1822307397739621634}
   - component: {fileID: 8357363886364463039}
   - component: {fileID: 2448706114627111484}
-  - component: {fileID: 6948573841494909906}
+  - component: {fileID: 7600573400654485824}
   m_Layer: 0
   m_Name: StoneGolem
   m_TagString: Enemy
@@ -1592,7 +1592,7 @@ MonoBehaviour:
   healthBarOffset: {x: 0, y: 1.05, z: 0}
   isFlying: 0
   flightHeight: 0
---- !u!114 &6948573841494909906
+--- !u!114 &7600573400654485824
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

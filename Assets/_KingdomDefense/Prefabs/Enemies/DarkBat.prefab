@@ -236,7 +236,7 @@ GameObject:
   - component: {fileID: 5342249082772722564}
   - component: {fileID: 3709915646253311243}
   - component: {fileID: 17133271354389038}
-  - component: {fileID: 5324034384786988762}
+  - component: {fileID: 3087631649436902681}
   m_Layer: 0
   m_Name: DarkBat
   m_TagString: Enemy
@@ -318,7 +318,7 @@ MonoBehaviour:
   healthBarOffset: {x: 0, y: 1.05, z: 0}
   isFlying: 1
   flightHeight: 2.8
---- !u!114 &5324034384786988762
+--- !u!114 &3087631649436902681
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

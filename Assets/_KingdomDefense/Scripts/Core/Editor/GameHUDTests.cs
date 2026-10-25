@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using KingdomDefense.UI;
+using KingdomDefense.Build;
 
 namespace KingdomDefense.Tests
 {
@@ -8,12 +9,17 @@ namespace KingdomDefense.Tests
     {
         private GameObject _hudObj;
         private GameHUD _hud;
+        private GameObject _buildManagerObj;
+        private BuildManager _buildManager;
 
         [SetUp]
         public void SetUp()
         {
             _hudObj = new GameObject("Test_GameHUD");
             _hud = _hudObj.AddComponent<GameHUD>();
+
+            _buildManagerObj = new GameObject("Test_BuildManager");
+            _buildManager = _buildManagerObj.AddComponent<BuildManager>();
         }
 
         [TearDown]
@@ -22,6 +28,10 @@ namespace KingdomDefense.Tests
             if (_hudObj != null)
             {
                 Object.DestroyImmediate(_hudObj);
+            }
+            if (_buildManagerObj != null)
+            {
+                Object.DestroyImmediate(_buildManagerObj);
             }
         }
 
@@ -71,6 +81,84 @@ namespace KingdomDefense.Tests
             bool consumedMore = _hud.ConsumeMana(60f);
             Assert.IsFalse(consumedMore, "Không được tiêu thụ nếu không đủ Mana.");
             Assert.AreEqual(40f, _hud.CurrentMana, "Mana phải giữ nguyên 40.");
+        }
+
+        [Test]
+        public void BottomDock_TowerCosts_MatchSpecifications()
+        {
+            Assert.AreEqual(100, _buildManager.ArcherCost, "Tháp Cung chi phí 100 Vàng.");
+            Assert.AreEqual(125, _buildManager.BombCost, "Tháp Pháo chi phí 125 Vàng.");
+            Assert.AreEqual(150, _buildManager.MageCost, "Tháp Phép chi phí 150 Vàng.");
+            Assert.AreEqual(175, _buildManager.FrostCost, "Tháp Băng Phong chi phí 175 Vàng.");
+            Assert.AreEqual(70, _buildManager.WallCost, "Tường Thành chi phí 70 Vàng.");
+        }
+
+        [Test]
+        public void BottomDock_TowerSelection_ValidatesGoldAndAllowsToggle()
+        {
+            // Ban đầu có 350 vàng -> đủ tiền mua Archer (100)
+            _buildManager.SelectTowerToBuild(TowerType.Archer);
+            Assert.AreEqual(TowerType.Archer, _buildManager.SelectedTowerType, "Phải chọn được Tháp Cung khi đủ vàng.");
+
+            // Nhấn lại lần nữa -> Toggle hủy chọn
+            _buildManager.SelectTowerToBuild(TowerType.Archer);
+            Assert.AreEqual(TowerType.None, _buildManager.SelectedTowerType, "Nhấn lại lần nữa phải hủy chọn (Toggle).");
+
+            // Giả lập người chơi chỉ còn 50 vàng
+            _hud.SetGold(50);
+            _buildManager.SelectTowerToBuild(TowerType.Bomb); // Cần 125 vàng
+            Assert.AreEqual(TowerType.None, _buildManager.SelectedTowerType, "Không được phép chọn tháp khi không đủ vàng.");
+        }
+
+        [Test]
+        public void BottomDock_AutoDeselect_WhenGoldDropsBelowCost()
+        {
+            // Người chơi có 150 vàng, đang chọn Tháp Phép (150 vàng)
+            _hud.SetGold(150);
+            _buildManager.SelectTowerToBuild(TowerType.Mage);
+            Assert.AreEqual(TowerType.Mage, _buildManager.SelectedTowerType);
+
+            // Bất ngờ bị hụt vàng (ví dụ sửa chữa hoặc trừ phí) xuống 100 vàng
+            _hud.SetGold(100);
+            Assert.AreEqual(TowerType.None, _buildManager.SelectedTowerType, "Khi vàng giảm xuống dưới chi phí, phải tự động hủy chọn.");
+        }
+
+        [Test]
+        public void HUDLayout_AlignAndEnforceHUDLayout_AppliesPixelPerfectDimensions()
+        {
+            GameObject tlObj = new GameObject("TopLeft_StatusPanel");
+            tlObj.transform.SetParent(_hudObj.transform, false);
+            RectTransform tlRect = tlObj.AddComponent<RectTransform>();
+
+            GameObject bdObj = new GameObject("BottomCenter_BuildDock");
+            bdObj.transform.SetParent(_hudObj.transform, false);
+            RectTransform bdRect = bdObj.AddComponent<RectTransform>();
+
+            _hud.AlignAndEnforceHUDLayout();
+
+            Assert.AreEqual(new Vector2(510f, 75f), tlRect.sizeDelta, "TopLeft Panel phải có kích thước 510x75.");
+            Assert.AreEqual(new Vector2(840f, 125f), bdRect.sizeDelta, "BottomDock Panel phải có kích thước 840x125 để bao trọn các nút.");
+            Assert.AreEqual(new Vector2(0f, 20f), bdRect.anchoredPosition, "BottomDock Panel phải cách đáy màn hình 20px.");
+        }
+
+        [Test]
+        public void BuildTowerOn_WhenGoldDropsBelowThreshold_PreservesTowerTypeAndBuildsCorrectly()
+        {
+            // Ban đầu có 150 vàng, xây tháp 100 vàng -> còn 50 vàng (< 100 vàng)
+            _hud.SetGold(150);
+            _buildManager.SelectTowerToBuild(TowerType.Archer);
+
+            GameObject nodeObj = new GameObject("Test_Node");
+            Node node = nodeObj.AddComponent<Node>();
+
+            bool success = _buildManager.BuildTowerOn(node);
+
+            Assert.IsTrue(success, "Quá trình xây dựng tháp thứ 3 phải thành công.");
+            Assert.AreEqual(50, _hud.CurrentGold, "Số vàng còn lại phải là 50.");
+            Assert.IsTrue(node.HasTurret, "Ô Node phải chứa tháp đã xây.");
+            Assert.IsNotNull(node.CurrentTurret.GetComponent<KingdomDefense.Towers.ArcherTower>(), "Tháp xây phải có component ArcherTower, không bị biến thành Cylinder rỗng.");
+
+            Object.DestroyImmediate(nodeObj);
         }
     }
 }

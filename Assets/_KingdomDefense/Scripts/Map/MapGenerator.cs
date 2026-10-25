@@ -1291,15 +1291,15 @@ namespace KingdomDefense.Map
             tlRect.anchorMax = new Vector2(0, 1);
             tlRect.pivot = new Vector2(0, 1);
             tlRect.anchoredPosition = new Vector2(25, -25);
-            tlRect.sizeDelta = new Vector2(480, 120);
+            tlRect.sizeDelta = new Vector2(510, 75);
 
             Image bg = topLeftPanel.AddComponent<Image>();
             if (iconBadgePanel != null) { bg.sprite = iconBadgePanel; bg.type = Image.Type.Sliced; }
             else bg.color = new Color(0.12f, 0.14f, 0.18f, 0.88f);
 
-            CreateBadgeItem(topLeftPanel.transform, new Vector2(30, -35), iconHeart, "20", new Color(1f, 0.95f, 0.95f), out Text livesText);
-            CreateBadgeItem(topLeftPanel.transform, new Vector2(165, -35), iconCoin, "350", new Color(1f, 0.88f, 0.25f), out Text goldText);
-            CreateBadgeItem(topLeftPanel.transform, new Vector2(310, -35), iconSkull, "WAVE: 1/10", Color.white, out Text waveText);
+            CreateBadgeItem(topLeftPanel.transform, new Vector2(18, 0), iconHeart, "20", new Color(1f, 0.95f, 0.95f), new Vector2(110, 50), out Text livesText);
+            CreateBadgeItem(topLeftPanel.transform, new Vector2(150, 0), iconCoin, "350", new Color(1f, 0.88f, 0.25f), new Vector2(125, 50), out Text goldText);
+            CreateBadgeItem(topLeftPanel.transform, new Vector2(295, 0), iconSkull, "WAVE: 1/10", Color.white, new Vector2(190, 50), out Text waveText);
 
             // 2. TOP-CENTER PANEL (Mana Energy Slider)
             CreateManaBar(canvasObj.transform, out Slider manaSlider, out Text manaText);
@@ -1327,21 +1327,21 @@ namespace KingdomDefense.Map
             bdRect.anchorMin = new Vector2(0.5f, 0f);
             bdRect.anchorMax = new Vector2(0.5f, 0f);
             bdRect.pivot = new Vector2(0.5f, 0f);
-            bdRect.anchoredPosition = new Vector2(0f, 25f);
-            bdRect.sizeDelta = new Vector2(760, 115);
+            bdRect.anchoredPosition = new Vector2(0f, 20f);
+            bdRect.sizeDelta = new Vector2(840, 125);
 
             Image bdBg = bottomDock.AddComponent<Image>();
             if (iconBadgePanel != null) { bdBg.sprite = iconBadgePanel; bdBg.type = Image.Type.Sliced; }
             else bdBg.color = new Color(0.10f, 0.12f, 0.16f, 0.92f);
 
             // Nút 1: Tháp Cung (100)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(-285, 0), "🏹 CUNG [1]", "100", out Button archerBtn, out Image archerHl, out Text archerCost);
+            CreateTowerCardButton(bottomDock.transform, new Vector2(-270, 0), "🏹 CUNG [1]", "100", out Button archerBtn, out Image archerHl, out Text archerCost);
             // Nút 2: Tháp Pháo (125)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(-95, 0), "💣 PHÁO [2]", "125", out Button bombBtn, out Image bombHl, out Text bombCost);
+            CreateTowerCardButton(bottomDock.transform, new Vector2(-90, 0), "💣 PHÁO [2]", "125", out Button bombBtn, out Image bombHl, out Text bombCost);
             // Nút 3: Tháp Phép (150)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(95, 0), "⚡ PHÉP [3]", "150", out Button mageBtn, out Image mageHl, out Text mageCost);
+            CreateTowerCardButton(bottomDock.transform, new Vector2(90, 0), "⚡ PHÉP [3]", "150", out Button mageBtn, out Image mageHl, out Text mageCost);
             // Nút 4: Tường Thành / Rào Chắn (70)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(285, 0), "🛡️ TƯỜNG [4]", "70", out Button wallBtn, out Image wallHl, out Text wallCost);
+            CreateTowerCardButton(bottomDock.transform, new Vector2(270, 0), "🛡️ TƯỜNG [4]", "70", out Button wallBtn, out Image wallHl, out Text wallCost);
 
             // Liên kết tham chiếu vào GameHUD
             SetPrivateField(hud, "livesText", livesText);
@@ -1511,19 +1511,26 @@ namespace KingdomDefense.Map
             co.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
-        private void CreateBadgeItem(Transform parent, Vector2 pos, Sprite iconSprite, string defaultText, Color textColor, out Text outText)
+        private void CreateBadgeItem(Transform parent, Vector2 pos, Sprite iconSprite, string defaultText, Color textColor, Vector2 sizeDelta, out Text outText)
         {
             GameObject item = new GameObject("BadgeItem");
             item.transform.SetParent(parent, false);
             RectTransform r = item.AddComponent<RectTransform>();
+            r.anchorMin = new Vector2(0f, 0.5f);
+            r.anchorMax = new Vector2(0f, 0.5f);
+            r.pivot = new Vector2(0f, 0.5f);
             r.anchoredPosition = pos;
+            r.sizeDelta = sizeDelta;
 
             // Icon
             GameObject iconObj = new GameObject("Icon");
             iconObj.transform.SetParent(item.transform, false);
             RectTransform iconR = iconObj.AddComponent<RectTransform>();
-            iconR.sizeDelta = new Vector2(46, 46);
-            iconR.anchoredPosition = new Vector2(0, 0);
+            iconR.anchorMin = new Vector2(0f, 0.5f);
+            iconR.anchorMax = new Vector2(0f, 0.5f);
+            iconR.pivot = new Vector2(0f, 0.5f);
+            iconR.sizeDelta = new Vector2(38, 38);
+            iconR.anchoredPosition = Vector2.zero;
             Image img = iconObj.AddComponent<Image>();
             if (iconSprite != null) img.sprite = iconSprite;
             else img.color = Color.white;
@@ -1532,13 +1539,16 @@ namespace KingdomDefense.Map
             GameObject textObj = new GameObject("ValueText");
             textObj.transform.SetParent(item.transform, false);
             RectTransform textR = textObj.AddComponent<RectTransform>();
-            textR.anchoredPosition = new Vector2(65, 0);
-            textR.sizeDelta = new Vector2(120, 40);
+            textR.anchorMin = new Vector2(0f, 0.5f);
+            textR.anchorMax = new Vector2(0f, 0.5f);
+            textR.pivot = new Vector2(0f, 0.5f);
+            textR.anchoredPosition = new Vector2(44, 0);
+            textR.sizeDelta = new Vector2(sizeDelta.x - 44, 38);
             outText = textObj.AddComponent<Text>();
             outText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (outText.font == null) outText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             outText.text = defaultText;
-            outText.fontSize = 24;
+            outText.fontSize = 22;
             outText.fontStyle = FontStyle.Bold;
             outText.color = textColor;
             outText.alignment = TextAnchor.MiddleLeft;

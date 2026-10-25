@@ -1413,7 +1413,7 @@ GameObject:
   - component: {fileID: 7507594881366396383}
   - component: {fileID: 2580382485737860255}
   - component: {fileID: 7890174397399622602}
-  - component: {fileID: 2708078041533708568}
+  - component: {fileID: 5118058989905174540}
   m_Layer: 0
   m_Name: BossOrcus
   m_TagString: Enemy
@@ -1500,7 +1500,7 @@ MonoBehaviour:
   stunRadius: 6
   stunDuration: 3
   slamInterval: 8
---- !u!114 &2708078041533708568
+--- !u!114 &5118058989905174540
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -94,8 +94,16 @@ namespace KingdomDefense.UI
             _currentMana = maxMana;
 
             EnsureEventSystem();
-            AutoBindTopHUDReferences();
+            AutoBindHUDReferences();
+            AlignAndEnforceHUDLayout();
             SetupButtonListeners();
+            UpdateAllDisplays();
+        }
+
+        private void Start()
+        {
+            EnsureEventSystem();
+            AlignAndEnforceHUDLayout();
             UpdateAllDisplays();
         }
 
@@ -113,10 +121,146 @@ namespace KingdomDefense.UI
         }
 
         /// <summary>
-        /// Tự động dò tìm các icon và thành phần Top HUD nếu chưa được gán thủ công trong Inspector.
+        /// Chuẩn hóa và căn chỉnh tự động tỷ lệ pixel-perfect cho Top HUD và Bottom Dock:
+        /// - Top HUD: Căn đều 3 huy hiệu Máu, Vàng, Wave trong khung 510x75, triệt tiêu hiện tượng lệch góc và tràn lề.
+        /// - Bottom Dock: Mở rộng khung viền lên 840x125 để ôm trọn 4 thẻ tháp (710px) với lề đệm sang trọng, không bị nhỏ hơn các nút.
         /// </summary>
-        private void AutoBindTopHUDReferences()
+        public void AlignAndEnforceHUDLayout()
         {
+            // 1. CĂN CHỈNH TOP-LEFT STATUS PANEL
+            Transform tlPanel = transform.Find("TopLeft_StatusPanel");
+            if (tlPanel != null)
+            {
+                RectTransform tlRect = tlPanel.GetComponent<RectTransform>();
+                if (tlRect != null)
+                {
+                    tlRect.anchorMin = new Vector2(0f, 1f);
+                    tlRect.anchorMax = new Vector2(0f, 1f);
+                    tlRect.pivot = new Vector2(0f, 1f);
+                    tlRect.anchoredPosition = new Vector2(25f, -25f);
+                    tlRect.sizeDelta = new Vector2(510f, 75f);
+                }
+
+                // Căn chỉnh 3 Badge con (Máu, Vàng, Wave)
+                Vector2[] badgePositions = new Vector2[]
+                {
+                    new Vector2(18f, 0f),   // Máu
+                    new Vector2(150f, 0f),  // Vàng
+                    new Vector2(295f, 0f)   // Wave
+                };
+
+                Vector2[] badgeSizes = new Vector2[]
+                {
+                    new Vector2(110f, 50f),
+                    new Vector2(125f, 50f),
+                    new Vector2(190f, 50f)
+                };
+
+                int badgeIndex = 0;
+                for (int i = 0; i < tlPanel.childCount && badgeIndex < 3; i++)
+                {
+                    Transform child = tlPanel.GetChild(i);
+                    if (child.name.Contains("BadgeItem"))
+                    {
+                        RectTransform br = child.GetComponent<RectTransform>();
+                        if (br != null)
+                        {
+                            br.anchorMin = new Vector2(0f, 0.5f);
+                            br.anchorMax = new Vector2(0f, 0.5f);
+                            br.pivot = new Vector2(0f, 0.5f);
+                            br.anchoredPosition = badgePositions[badgeIndex];
+                            br.sizeDelta = badgeSizes[badgeIndex];
+                        }
+
+                        // Căn chỉnh icon và text bên trong Badge
+                        Transform iconTr = child.Find("Icon");
+                        if (iconTr != null)
+                        {
+                            RectTransform ir = iconTr.GetComponent<RectTransform>();
+                            if (ir != null)
+                            {
+                                ir.anchorMin = ir.anchorMax = ir.pivot = new Vector2(0f, 0.5f);
+                                ir.anchoredPosition = Vector2.zero;
+                                ir.sizeDelta = new Vector2(38f, 38f);
+                            }
+                        }
+
+                        Transform valTr = child.Find("ValueText");
+                        if (valTr != null)
+                        {
+                            RectTransform vr = valTr.GetComponent<RectTransform>();
+                            if (vr != null)
+                            {
+                                vr.anchorMin = vr.anchorMax = vr.pivot = new Vector2(0f, 0.5f);
+                                vr.anchoredPosition = new Vector2(44f, 0f);
+                                vr.sizeDelta = new Vector2(badgeSizes[badgeIndex].x - 44f, 38f);
+                            }
+                        }
+
+                        badgeIndex++;
+                    }
+                }
+            }
+
+            // 2. CĂN CHỈNH BOTTOM-CENTER BUILD DOCK (Khung rộng 840x125 ôm trọn 4 thẻ nút 710px)
+            Transform bdPanel = transform.Find("BottomCenter_BuildDock");
+            if (bdPanel != null)
+            {
+                RectTransform bdRect = bdPanel.GetComponent<RectTransform>();
+                if (bdRect != null)
+                {
+                    bdRect.anchorMin = new Vector2(0.5f, 0f);
+                    bdRect.anchorMax = new Vector2(0.5f, 0f);
+                    bdRect.pivot = new Vector2(0.5f, 0f);
+                    bdRect.anchoredPosition = new Vector2(0f, 20f);
+                    bdRect.sizeDelta = new Vector2(840f, 125f);
+                }
+
+                // Căn chỉnh đều 4 thẻ nút: -270, -90, 90, 270 (mỗi thẻ rộng 170px)
+                float[] cardXPositions = new float[] { -270f, -90f, 90f, 270f };
+                int cardIndex = 0;
+
+                for (int i = 0; i < bdPanel.childCount && cardIndex < 4; i++)
+                {
+                    Transform card = bdPanel.GetChild(i);
+                    if (card.name.StartsWith("Card_"))
+                    {
+                        RectTransform cr = card.GetComponent<RectTransform>();
+                        if (cr != null)
+                        {
+                            cr.anchorMin = new Vector2(0.5f, 0.5f);
+                            cr.anchorMax = new Vector2(0.5f, 0.5f);
+                            cr.pivot = new Vector2(0.5f, 0.5f);
+                            cr.anchoredPosition = new Vector2(cardXPositions[cardIndex], 0f);
+                            cr.sizeDelta = new Vector2(170f, 95f);
+                        }
+                        cardIndex++;
+                    }
+                }
+            }
+
+            // 3. CĂN CHỈNH TOP-CENTER MANA BAR
+            Transform manaBar = transform.Find("TopCenter_ManaBar");
+            if (manaBar != null)
+            {
+                RectTransform mr = manaBar.GetComponent<RectTransform>();
+                if (mr != null)
+                {
+                    mr.anchorMin = new Vector2(0.5f, 1f);
+                    mr.anchorMax = new Vector2(0.5f, 1f);
+                    mr.pivot = new Vector2(0.5f, 1f);
+                    mr.anchoredPosition = new Vector2(0f, -25f);
+                    mr.sizeDelta = new Vector2(380f, 48f);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tự động dò tìm các icon Top HUD và các nút Bottom Dock nếu chưa được gán thủ công trong Inspector.
+        /// </summary>
+        private void AutoBindHUDReferences()
+        {
+            // 1. Tự động liên kết Top HUD
             if (livesIcon == null && livesText != null && livesText.transform.parent != null)
             {
                 Transform iconTr = livesText.transform.parent.Find("Icon");
@@ -140,10 +284,53 @@ namespace KingdomDefense.UI
                 manaFillImage = manaSlider.fillRect.GetComponent<Image>();
             }
 
-            // Tùy chỉnh màu sắc Xanh Lam Ngọc (Cyan/Azure Crystal) cho thanh Mana
             if (manaFillImage != null)
             {
                 manaFillImage.color = new Color(0.06f, 0.72f, 0.94f, 1f);
+            }
+
+            // 2. Tự động liên kết Bottom Dock nếu chưa gán
+            Transform dockTr = transform.Find("BottomCenter_BuildDock");
+            if (dockTr != null)
+            {
+                for (int i = 0; i < dockTr.childCount; i++)
+                {
+                    Transform card = dockTr.GetChild(i);
+                    Button btn = card.GetComponent<Button>();
+                    if (btn == null) continue;
+
+                    string cardName = card.name.ToLower();
+                    if (cardName.Contains("cung") || cardName.Contains("archer"))
+                    {
+                        if (archerBtn == null) archerBtn = btn;
+                        if (archerHighlight == null) archerHighlight = card.Find("Highlight")?.GetComponent<Image>();
+                        if (archerCostText == null) archerCostText = card.Find("CostText")?.GetComponent<Text>();
+                    }
+                    else if (cardName.Contains("pháo") || cardName.Contains("phao") || cardName.Contains("bomb") || cardName.Contains("cannon"))
+                    {
+                        if (bombBtn == null) bombBtn = btn;
+                        if (bombHighlight == null) bombHighlight = card.Find("Highlight")?.GetComponent<Image>();
+                        if (bombCostText == null) bombCostText = card.Find("CostText")?.GetComponent<Text>();
+                    }
+                    else if (cardName.Contains("phép") || cardName.Contains("phep") || cardName.Contains("mage"))
+                    {
+                        if (mageBtn == null) mageBtn = btn;
+                        if (mageHighlight == null) mageHighlight = card.Find("Highlight")?.GetComponent<Image>();
+                        if (mageCostText == null) mageCostText = card.Find("CostText")?.GetComponent<Text>();
+                    }
+                    else if (cardName.Contains("băng") || cardName.Contains("bang") || cardName.Contains("frost"))
+                    {
+                        if (frostBtn == null) frostBtn = btn;
+                        if (frostHighlight == null) frostHighlight = card.Find("Highlight")?.GetComponent<Image>();
+                        if (frostCostText == null) frostCostText = card.Find("CostText")?.GetComponent<Text>();
+                    }
+                    else if (cardName.Contains("tường") || cardName.Contains("tuong") || cardName.Contains("wall"))
+                    {
+                        if (wallBtn == null) wallBtn = btn;
+                        if (wallHighlight == null) wallHighlight = card.Find("Highlight")?.GetComponent<Image>();
+                        if (wallCostText == null) wallCostText = card.Find("CostText")?.GetComponent<Text>();
+                    }
+                }
             }
         }
 
@@ -163,12 +350,6 @@ namespace KingdomDefense.UI
 #endif
                 Debug.Log("[GameHUD] Đã tự động tạo EventSystem để các nút UI nhận được click chuột!");
             }
-        }
-
-        private void Start()
-        {
-            EnsureEventSystem();
-            UpdateAllDisplays();
         }
 
         private void Update()
@@ -492,6 +673,7 @@ namespace KingdomDefense.UI
 
         /// <summary>
         /// Tự động làm mờ / vô hiệu hóa nút mua tháp nếu người chơi không đủ vàng.
+        /// Đồng thời kiểm tra nếu đang chọn tháp mà số vàng bị hụt xuống dưới chi phí mua, tự động hủy chọn (Edge Case 1).
         /// </summary>
         public void UpdateTowerButtonsAvailability()
         {
@@ -503,26 +685,63 @@ namespace KingdomDefense.UI
             SetButtonState(mageBtn, mageCostText, gold >= BuildManager.Instance.MageCost);
             SetButtonState(frostBtn, frostCostText, gold >= BuildManager.Instance.FrostCost);
             SetButtonState(wallBtn, wallCostText, gold >= BuildManager.Instance.WallCost);
+
+            // Trường hợp biên (Edge Case 1): Nếu đang chọn tháp mà số vàng bị hụt xuống dưới chi phí mua, tự động hủy chọn
+            if (BuildManager.Instance.SelectedTowerType != TowerType.None && !BuildManager.Instance.HasEnoughMoney(BuildManager.Instance.SelectedTowerType))
+            {
+                BuildManager.Instance.SelectTowerToBuild(TowerType.None);
+            }
         }
 
+        /// <summary>
+        /// Thiết lập trạng thái hiển thị của nút mua công trình:
+        /// - Khi ĐỦ VÀNG: Nút tương tác được (interactable=true), nền Slate/Navy sang trọng, giá Vàng rực rỡ (#FBBF24), chữ sắc nét.
+        /// - Khi THIẾU VÀNG: Làm tối mờ cao cấp (interactable=false), nền sẫm mờ (Alpha 0.45), giá Vàng chuyển Đỏ cảnh báo (#EF4444), icon mờ nhẹ.
+        /// </summary>
         private void SetButtonState(Button btn, Text costText, bool enabledState)
         {
             if (btn == null) return;
             btn.interactable = enabledState;
+
+            // 1. Nền thẻ nút
             Image img = btn.GetComponent<Image>();
             if (img != null)
             {
-                // Giữ màu nền thẻ sẫm màu sang trọng (Slate / Navy) thay vì biến thành màu trắng bệch
                 img.color = enabledState 
-                    ? new Color(0.14f, 0.17f, 0.23f, 0.95f) 
-                    : new Color(0.10f, 0.11f, 0.14f, 0.60f);
+                    ? new Color(0.14f, 0.18f, 0.25f, 0.96f)  // Slate / Navy sang trọng
+                    : new Color(0.08f, 0.09f, 0.12f, 0.45f); // Tối mờ cao cấp
             }
 
+            // 2. Chữ giá tiền vàng
             if (costText != null)
             {
                 costText.color = enabledState 
-                    ? new Color(1f, 0.88f, 0.25f, 1f) 
-                    : new Color(0.95f, 0.35f, 0.35f, 0.7f);
+                    ? new Color(1.0f, 0.88f, 0.25f, 1f)     // Vàng hoàng gia rực rỡ
+                    : new Color(0.95f, 0.28f, 0.28f, 0.75f); // Đỏ thẫm cảnh báo thiếu tiền
+            }
+
+            // 3. Làm mờ / nổi bật các dòng chữ nhãn trong thẻ (ví dụ: '🏹 CUNG [1]')
+            Text[] allTexts = btn.GetComponentsInChildren<Text>(true);
+            foreach (var txt in allTexts)
+            {
+                if (txt != costText)
+                {
+                    txt.color = enabledState
+                        ? new Color(1f, 0.96f, 0.88f, 1f)       // Trắng ngà nổi bật
+                        : new Color(0.50f, 0.55f, 0.62f, 0.50f); // Xám bạc tối mờ
+                }
+            }
+
+            // 4. Làm mờ icon minh họa trong thẻ nếu có
+            Image[] allImages = btn.GetComponentsInChildren<Image>(true);
+            foreach (var iconImg in allImages)
+            {
+                if (iconImg != img && !iconImg.name.Contains("Highlight"))
+                {
+                    Color c = iconImg.color;
+                    c.a = enabledState ? 1f : 0.35f;
+                    iconImg.color = c;
+                }
             }
         }
 

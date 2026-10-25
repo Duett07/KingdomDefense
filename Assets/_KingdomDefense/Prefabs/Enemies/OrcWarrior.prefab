@@ -2732,7 +2732,7 @@ GameObject:
   - component: {fileID: 2174784835288742735}
   - component: {fileID: 3176547702551293839}
   - component: {fileID: 4899411963894394570}
-  - component: {fileID: 1351288993073606830}
+  - component: {fileID: 8601749759497099704}
   m_Layer: 0
   m_Name: OrcWarrior
   m_TagString: Enemy
@@ -2816,7 +2816,7 @@ MonoBehaviour:
   healthBarOffset: {x: 0, y: 1.05, z: 0}
   isFlying: 0
   flightHeight: 0
---- !u!114 &1351288993073606830
+--- !u!114 &8601749759497099704
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
