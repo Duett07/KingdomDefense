@@ -1,6 +1,7 @@
 using UnityEngine;
 using KingdomDefense.UI;
 using KingdomDefense.Towers;
+using KingdomDefense.Skills;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -61,6 +62,12 @@ namespace KingdomDefense.Build
 
         private void Update()
         {
+            // Chặn phím tắt chọn công trình khi game đang tạm dừng (Pause)
+            if ((GameHUD.Instance != null && GameHUD.Instance.IsPaused) || Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             // Hỗ trợ phím tắt số [1], [2], [3], [4], [5] để chọn công trình nhanh
             bool key1 = false, key2 = false, key3 = false, key4 = false, key5 = false, keyEsc = false;
 
@@ -110,9 +117,16 @@ namespace KingdomDefense.Build
             if (key1) SelectTowerToBuild(TowerType.Archer);
             else if (key2) SelectTowerToBuild(TowerType.Bomb);
             else if (key3) SelectTowerToBuild(TowerType.Mage);
-            else if (key4) SelectTowerToBuild(TowerType.Wall);
-            else if (key5) SelectTowerToBuild(TowerType.Frost);
-            else if (keyEsc || rightClick) SelectTowerToBuild(TowerType.None);
+            else if (key4) SelectTowerToBuild(TowerType.Frost);
+            else if (key5) SelectTowerToBuild(TowerType.Wall);
+            else if (keyEsc || rightClick)
+            {
+                // Nếu Thiên Thạch đang ngắm thì nhường ưu tiên cho MeteorShowerSkill hủy trước
+                if (MeteorShowerSkill.Instance == null || !MeteorShowerSkill.Instance.IsAiming)
+                {
+                    SelectTowerToBuild(TowerType.None);
+                }
+            }
         }
 
         /// <summary>
@@ -150,6 +164,15 @@ namespace KingdomDefense.Build
             {
                 Debug.LogWarning($"[BuildManager] Không đủ vàng để chọn {type} (Cần {GetCost(type)} Vàng)!");
                 return;
+            }
+
+            if (type != TowerType.None)
+            {
+                // Nếu đang ngắm Thiên Thạch, hủy ngắm trước khi chọn tháp
+                if (MeteorShowerSkill.Instance != null && MeteorShowerSkill.Instance.IsAiming)
+                {
+                    MeteorShowerSkill.Instance.SetAiming(false);
+                }
             }
 
             if (_selectedTowerType == type)

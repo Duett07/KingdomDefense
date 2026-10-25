@@ -1,5 +1,6 @@
 using UnityEngine;
 using KingdomDefense.UI;
+using KingdomDefense.Build;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -135,6 +136,12 @@ namespace KingdomDefense.Skills
         /// </summary>
         private void HandleHotkeyInput()
         {
+            // Chặn phím tắt kỹ năng khi game đang tạm dừng (Pause)
+            if ((GameHUD.Instance != null && GameHUD.Instance.IsPaused) || Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             bool spacePressed = false;
             bool cancelPressed = false;
 
@@ -155,6 +162,11 @@ namespace KingdomDefense.Skills
 
             if (spacePressed)
             {
+                // Nếu đang chọn tháp ở BuildManager thì hủy chọn tháp trước khi ngắm thiên thạch
+                if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+                {
+                    BuildManager.Instance.SelectTowerToBuild(TowerType.None);
+                }
                 ToggleAiming();
             }
             else if (cancelPressed && _isAiming)
@@ -186,12 +198,19 @@ namespace KingdomDefense.Skills
             }
         }
 
-        private void SetAiming(bool aiming)
+        /// <summary>
+        /// Bật hoặc tắt trạng thái hồng tâm ngắm bắn Mưa Thiên Thạch.
+        /// </summary>
+        public void SetAiming(bool aiming)
         {
             _isAiming = aiming;
             if (_reticleRoot != null)
             {
                 _reticleRoot.SetActive(aiming);
+            }
+            if (GameHUD.Instance != null)
+            {
+                GameHUD.Instance.UpdateManaDisplay();
             }
         }
 

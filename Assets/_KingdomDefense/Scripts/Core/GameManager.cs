@@ -231,6 +231,12 @@ namespace KingdomDefense.Core
                 Destroy(_activeModalObject);
             }
 
+            // Trường hợp biên 1: Nếu người chơi đang mở Pause Menu -> Đóng ngay lập tức để ưu tiên bảng Thắng/Thua
+            if (KingdomDefense.UI.GameHUD.Instance != null && KingdomDefense.UI.GameHUD.Instance.IsPaused)
+            {
+                KingdomDefense.UI.GameHUD.Instance.ClosePauseModal();
+            }
+
             Canvas targetCanvas = Object.FindAnyObjectByType<Canvas>();
             if (targetCanvas == null)
             {
@@ -355,6 +361,9 @@ namespace KingdomDefense.Core
             // 7. Hàng Nút Hành Động (Action Buttons: Chơi Lại / Về Menu)
             CreateActionButtons(panel.transform, isVictory, defaultFont);
 
+            // Kích hoạt hiệu ứng bung nở hộp thoại (Punch Scale Tween) mượt mà chạy trên Time.unscaledDeltaTime
+            StartCoroutine(AnimateModalPopRoutine(panel.transform));
+
             return overlay;
         }
 
@@ -459,6 +468,30 @@ namespace KingdomDefense.Core
                 sTransform.localScale = Vector3.one;
                 yield return new WaitForSecondsRealtime(0.12f);
             }
+        }
+
+        /// <summary>
+        /// Hiệu ứng bung nở nảy nhẹ (Punch Scale Tween) cho Dialog Modal Panel (0.85x -> 1.05x -> 1.0x).
+        /// Hoạt động mượt mà trên Time.unscaledDeltaTime bất chấp Time.timeScale = 0.
+        /// </summary>
+        private IEnumerator AnimateModalPopRoutine(Transform panel)
+        {
+            if (panel == null) yield break;
+
+            panel.localScale = Vector3.one * 0.85f;
+            float duration = 0.22f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scale = 0.85f + Mathf.Sin(t * Mathf.PI * 0.7f) * 0.22f;
+                panel.localScale = Vector3.one * scale;
+                yield return null;
+            }
+
+            panel.localScale = Vector3.one;
         }
 
         /// <summary>

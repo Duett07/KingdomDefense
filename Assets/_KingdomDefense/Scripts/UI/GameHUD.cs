@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using KingdomDefense.Build;
+using KingdomDefense.Core;
+using KingdomDefense.Skills;
 
 namespace KingdomDefense.UI
 {
@@ -218,7 +220,7 @@ namespace KingdomDefense.UI
                 }
             }
 
-            // 2. CĂN CHỈNH BOTTOM-CENTER BUILD DOCK (Khung rộng 840x125 ôm trọn 4 thẻ nút 710px)
+            // 2. CĂN CHỈNH BOTTOM-CENTER BUILD DOCK (Khung rộng 920x125 ôm trọn các thẻ nút)
             Transform bdPanel = transform.Find("BottomCenter_BuildDock");
             if (bdPanel != null)
             {
@@ -229,14 +231,30 @@ namespace KingdomDefense.UI
                     bdRect.anchorMax = new Vector2(0.5f, 0f);
                     bdRect.pivot = new Vector2(0.5f, 0f);
                     bdRect.anchoredPosition = new Vector2(0f, 20f);
-                    bdRect.sizeDelta = new Vector2(840f, 125f);
+                    bdRect.sizeDelta = new Vector2(920f, 125f);
                 }
 
-                // Căn chỉnh đều 4 thẻ nút: -270, -90, 90, 270 (mỗi thẻ rộng 170px)
-                float[] cardXPositions = new float[] { -270f, -90f, 90f, 270f };
-                int cardIndex = 0;
+                int cardCount = 0;
+                for (int i = 0; i < bdPanel.childCount; i++)
+                {
+                    if (bdPanel.GetChild(i).name.StartsWith("Card_")) cardCount++;
+                }
 
-                for (int i = 0; i < bdPanel.childCount && cardIndex < 4; i++)
+                float[] cardXPositions;
+                float cardWidth;
+                if (cardCount >= 5)
+                {
+                    cardXPositions = new float[] { -340f, -170f, 0f, 170f, 340f };
+                    cardWidth = 155f;
+                }
+                else
+                {
+                    cardXPositions = new float[] { -270f, -90f, 90f, 270f };
+                    cardWidth = 170f;
+                }
+
+                int cardIndex = 0;
+                for (int i = 0; i < bdPanel.childCount && cardIndex < cardXPositions.Length; i++)
                 {
                     Transform card = bdPanel.GetChild(i);
                     if (card.name.StartsWith("Card_"))
@@ -248,7 +266,7 @@ namespace KingdomDefense.UI
                             cr.anchorMax = new Vector2(0.5f, 0.5f);
                             cr.pivot = new Vector2(0.5f, 0.5f);
                             cr.anchoredPosition = new Vector2(cardXPositions[cardIndex], 0f);
-                            cr.sizeDelta = new Vector2(170f, 95f);
+                            cr.sizeDelta = new Vector2(cardWidth, 95f);
                         }
                         cardIndex++;
                     }
@@ -357,35 +375,38 @@ namespace KingdomDefense.UI
                     if (btn == null) continue;
 
                     string cardName = card.name.ToLower();
+                    Transform hlTr = card.Find("Highlight") ?? card.Find("HighlightBorder");
+                    Transform costTr = card.Find("CostText") ?? card.Find("Cost");
+
                     if (cardName.Contains("cung") || cardName.Contains("archer"))
                     {
                         if (archerBtn == null) archerBtn = btn;
-                        if (archerHighlight == null) archerHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (archerCostText == null) archerCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (archerHighlight == null) archerHighlight = hlTr?.GetComponent<Image>();
+                        if (archerCostText == null) archerCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("pháo") || cardName.Contains("phao") || cardName.Contains("bomb") || cardName.Contains("cannon"))
                     {
                         if (bombBtn == null) bombBtn = btn;
-                        if (bombHighlight == null) bombHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (bombCostText == null) bombCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (bombHighlight == null) bombHighlight = hlTr?.GetComponent<Image>();
+                        if (bombCostText == null) bombCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("phép") || cardName.Contains("phep") || cardName.Contains("mage"))
                     {
                         if (mageBtn == null) mageBtn = btn;
-                        if (mageHighlight == null) mageHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (mageCostText == null) mageCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (mageHighlight == null) mageHighlight = hlTr?.GetComponent<Image>();
+                        if (mageCostText == null) mageCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("băng") || cardName.Contains("bang") || cardName.Contains("frost"))
                     {
                         if (frostBtn == null) frostBtn = btn;
-                        if (frostHighlight == null) frostHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (frostCostText == null) frostCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (frostHighlight == null) frostHighlight = hlTr?.GetComponent<Image>();
+                        if (frostCostText == null) frostCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("tường") || cardName.Contains("tuong") || cardName.Contains("wall"))
                     {
                         if (wallBtn == null) wallBtn = btn;
-                        if (wallHighlight == null) wallHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (wallCostText == null) wallCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (wallHighlight == null) wallHighlight = hlTr?.GetComponent<Image>();
+                        if (wallCostText == null) wallCostText = costTr?.GetComponent<Text>();
                     }
                 }
             }
@@ -462,6 +483,12 @@ namespace KingdomDefense.UI
 
         /// <summary>
         /// Khởi tạo hoặc tìm kiếm màn che phủ mờ (Dark Tint Overlay) khi game Tạm dừng.
+        /// <summary>
+        /// Khởi tạo hoặc tìm kiếm Modal Menu Tạm Dừng (Pause Modal Dialog) khi game Tạm dừng:
+        /// - Lớp phủ mờ điện ảnh tối (Dark Backdrop Overlay) chặn click xuyên thấu nhưng không đóng nhầm modal.
+        /// - Dialog Card Hoàng gia (480x380) với viền vàng kim sang trọng (Royal Gold Outline #F59E0B).
+        /// - 3 Nút bấm: [TIẾP TỤC], [CHƠI LẠI TRẬN], [VỀ MENU / THOÁT].
+        /// - Hiệu ứng bung nở nảy nhẹ (Punch Scale Tween) mượt mà chạy trên Time.unscaledDeltaTime.
         /// </summary>
         public void EnsurePauseOverlay()
         {
@@ -474,6 +501,9 @@ namespace KingdomDefense.UI
                 return;
             }
 
+            Font defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+            // 1. Backdrop Overlay (Lớp phủ làm mờ nền màn hình)
             GameObject overlayObj = new GameObject("Pause_Overlay");
             overlayObj.transform.SetParent(transform, false);
             overlayObj.transform.SetAsLastSibling();
@@ -485,34 +515,40 @@ namespace KingdomDefense.UI
             r.anchoredPosition = Vector2.zero;
 
             Image darkTint = overlayObj.AddComponent<Image>();
-            darkTint.color = new Color(0.04f, 0.06f, 0.08f, 0.65f); // Phủ mờ điện ảnh
-            darkTint.raycastTarget = false; // Không chặn tương tác chuột
+            darkTint.color = new Color(0.04f, 0.06f, 0.08f, 0.75f); // Phủ mờ điện ảnh
+            darkTint.raycastTarget = true; // Chặn click chuột xuyên thấu xuống bàn chơi khi đang tạm dừng
 
-            // Panel thông báo trung tâm
-            GameObject centerBox = new GameObject("Center_Banner");
+            // 2. Dialog Panel (Hộp thoại chính phong cách Hoàng gia 480x380)
+            GameObject centerBox = new GameObject("PauseModal_Panel");
             centerBox.transform.SetParent(overlayObj.transform, false);
             RectTransform cbr = centerBox.AddComponent<RectTransform>();
             cbr.anchorMin = new Vector2(0.5f, 0.5f);
             cbr.anchorMax = new Vector2(0.5f, 0.5f);
             cbr.pivot = new Vector2(0.5f, 0.5f);
             cbr.anchoredPosition = Vector2.zero;
-            cbr.sizeDelta = new Vector2(460f, 130f);
+            cbr.sizeDelta = new Vector2(480f, 380f);
 
             Image boxBg = centerBox.AddComponent<Image>();
-            boxBg.color = new Color(0.12f, 0.15f, 0.22f, 0.94f); // Slate Navy sang trọng
+            boxBg.color = new Color(0.10f, 0.13f, 0.18f, 0.98f); // Đá phiến hoàng gia sẫm
 
-            // Tiêu đề: ĐANG TẠM DỪNG
+            Outline panelOutline = centerBox.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.96f, 0.72f, 0.15f, 1f); // Viền vàng kim rực rỡ
+            panelOutline.effectDistance = new Vector2(3f, -3f);
+
+            // 3. Tiêu đề: ⏸ TRÒ CHƠI TẠM DỪNG
             GameObject titleObj = new GameObject("Title_Text");
             titleObj.transform.SetParent(centerBox.transform, false);
             RectTransform tr = titleObj.AddComponent<RectTransform>();
-            tr.anchorMin = new Vector2(0f, 0.45f);
+            tr.anchorMin = new Vector2(0f, 1f);
             tr.anchorMax = new Vector2(1f, 1f);
-            tr.offsetMin = tr.offsetMax = Vector2.zero;
+            tr.pivot = new Vector2(0.5f, 1f);
+            tr.anchoredPosition = new Vector2(0f, -24f);
+            tr.sizeDelta = new Vector2(460f, 45f);
 
             Text titleText = titleObj.AddComponent<Text>();
-            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
-            titleText.text = "⏸ ĐANG TẠM DỪNG";
-            titleText.fontSize = 28;
+            titleText.font = defaultFont;
+            titleText.text = "⏸ TRÒ CHƠI TẠM DỪNG";
+            titleText.fontSize = 26;
             titleText.fontStyle = FontStyle.Bold;
             titleText.color = new Color(1f, 0.88f, 0.25f, 1f); // Vàng kim hoàng gia
             titleText.alignment = TextAnchor.MiddleCenter;
@@ -521,23 +557,110 @@ namespace KingdomDefense.UI
             to.effectColor = new Color(0f, 0f, 0f, 0.9f);
             to.effectDistance = new Vector2(2f, -2f);
 
-            // Gợi ý phím tắt
+            // 4. Phụ đề & Hướng dẫn
             GameObject subObj = new GameObject("Subtitle_Text");
             subObj.transform.SetParent(centerBox.transform, false);
             RectTransform sr = subObj.AddComponent<RectTransform>();
-            sr.anchorMin = new Vector2(0f, 0f);
-            sr.anchorMax = new Vector2(1f, 0.45f);
-            sr.offsetMin = sr.offsetMax = Vector2.zero;
+            sr.anchorMin = new Vector2(0f, 1f);
+            sr.anchorMax = new Vector2(1f, 1f);
+            sr.pivot = new Vector2(0.5f, 1f);
+            sr.anchoredPosition = new Vector2(0f, -70f);
+            sr.sizeDelta = new Vector2(440f, 30f);
 
             Text subText = subObj.AddComponent<Text>();
-            subText.font = titleText.font;
-            subText.text = "Nhấn [Esc], [P] hoặc click biểu tượng ▶ để Tiếp tục";
-            subText.fontSize = 15;
-            subText.color = new Color(0.85f, 0.88f, 0.92f, 0.95f);
+            subText.font = defaultFont;
+            subText.text = "Vương quốc đang đợi lệnh! Nhấn [Esc] hoặc [P] để tiếp tục";
+            subText.fontSize = 14;
+            subText.color = new Color(0.82f, 0.86f, 0.92f, 0.9f);
             subText.alignment = TextAnchor.MiddleCenter;
+
+            // 5. Ba nút chức năng: [TIẾP TỤC], [CHƠI LẠI TRẬN], [VỀ MENU / THOÁT]
+            CreateModalButton(centerBox.transform, new Vector2(0f, -135f), "▶  TIẾP TỤC (RESUME)", new Color(0.12f, 0.58f, 0.32f, 1f), defaultFont, () => TogglePause());
+            CreateModalButton(centerBox.transform, new Vector2(0f, -205f), "🔄  CHƠI LẠI TRẬN (RESTART)", new Color(0.85f, 0.52f, 0.12f, 1f), defaultFont, () => {
+                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+                else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            });
+            CreateModalButton(centerBox.transform, new Vector2(0f, -275f), "🏠  VỀ MENU / THOÁT", new Color(0.22f, 0.26f, 0.34f, 1f), defaultFont, () => {
+                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+                else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            });
 
             pauseOverlay = overlayObj;
             pauseOverlay.SetActive(false);
+        }
+
+        private void CreateModalButton(Transform parent, Vector2 anchoredPos, string label, Color bgColor, Font font, UnityEngine.Events.UnityAction onClickAction)
+        {
+            string shortName = label.Replace(" ", "_").Replace("/", "_").Replace("(", "").Replace(")", "").Replace("▶", "").Replace("🔄", "").Replace("🏠", "").Trim('_');
+            GameObject btnObj = new GameObject("Btn_" + shortName);
+            btnObj.transform.SetParent(parent, false);
+            RectTransform br = btnObj.AddComponent<RectTransform>();
+            br.anchorMin = new Vector2(0.5f, 1f);
+            br.anchorMax = new Vector2(0.5f, 1f);
+            br.pivot = new Vector2(0.5f, 0.5f);
+            br.anchoredPosition = anchoredPos;
+            br.sizeDelta = new Vector2(360f, 52f);
+
+            Image img = btnObj.AddComponent<Image>();
+            img.color = bgColor;
+
+            Button btn = btnObj.AddComponent<Button>();
+            btn.targetGraphic = img;
+
+            ColorBlock cb = btn.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(1.2f, 1.2f, 1.25f, 1f);
+            cb.pressedColor = new Color(0.85f, 0.85f, 0.9f, 1f);
+            btn.colors = cb;
+
+            if (onClickAction != null)
+            {
+                btn.onClick.AddListener(onClickAction);
+            }
+
+            Outline bo = btnObj.AddComponent<Outline>();
+            bo.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            bo.effectDistance = new Vector2(1.5f, -1.5f);
+
+            GameObject textObj = new GameObject("Label");
+            textObj.transform.SetParent(btnObj.transform, false);
+            RectTransform tr = textObj.AddComponent<RectTransform>();
+            tr.anchorMin = Vector2.zero;
+            tr.anchorMax = Vector2.one;
+            tr.sizeDelta = Vector2.zero;
+
+            Text txt = textObj.AddComponent<Text>();
+            txt.font = font;
+            txt.text = label;
+            txt.fontSize = 17;
+            txt.fontStyle = FontStyle.Bold;
+            txt.color = Color.white;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.raycastTarget = false;
+        }
+
+        /// <summary>
+        /// Hiệu ứng bung nở nảy nhẹ (Punch Scale Tween) cho Dialog Panel (0.85x -> 1.05x -> 1.0x).
+        /// Chạy mượt mà trên Time.unscaledDeltaTime bất chấp Time.timeScale = 0.
+        /// </summary>
+        private IEnumerator AnimateModalPopRoutine(Transform panel)
+        {
+            if (panel == null) yield break;
+
+            panel.localScale = Vector3.one * 0.85f;
+            float duration = 0.22f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scale = 0.85f + Mathf.Sin(t * Mathf.PI * 0.7f) * 0.22f;
+                panel.localScale = Vector3.one * scale;
+                yield return null;
+            }
+
+            panel.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -571,25 +694,51 @@ namespace KingdomDefense.UI
             HandleControlHotkeys();
         }
 
+        /// <summary>
+        /// Xử lý hành vi phím [Esc] theo thứ tự ưu tiên:
+        /// 1. Hủy ngắm bắn Thiên Thạch (nếu đang ngắm).
+        /// 2. Hủy chọn tháp (nếu đang chọn tháp).
+        /// 3. Bật / Tắt Menu Tạm dừng (Pause Modal).
+        /// </summary>
+        public string HandleEscAction()
+        {
+            if (MeteorShowerSkill.Instance != null && MeteorShowerSkill.Instance.IsAiming)
+            {
+                MeteorShowerSkill.Instance.SetAiming(false);
+                return "CancelMeteorAiming";
+            }
+
+            if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+            {
+                BuildManager.Instance.SelectTowerToBuild(TowerType.None);
+                return "CancelTowerSelection";
+            }
+
+            TogglePause();
+            return _isPaused ? "OpenPauseMenu" : "ClosePauseMenu";
+        }
+
         private void HandleControlHotkeys()
         {
-            bool togglePause = false;
+            bool escPressed = false;
+            bool pPressed = false;
             bool toggleSpeed = false;
 
 #if ENABLE_INPUT_SYSTEM
             if (UnityEngine.InputSystem.Keyboard.current != null)
             {
-                togglePause = UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame ||
-                              UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame;
+                escPressed = UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame;
+                pPressed = UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame;
                 toggleSpeed = UnityEngine.InputSystem.Keyboard.current.tabKey.wasPressedThisFrame ||
                               UnityEngine.InputSystem.Keyboard.current.backquoteKey.wasPressedThisFrame;
             }
 #endif
-            if (!togglePause)
+            if (!escPressed && !pPressed)
             {
                 try
                 {
-                    togglePause = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
+                    escPressed = Input.GetKeyDown(KeyCode.Escape);
+                    pPressed = Input.GetKeyDown(KeyCode.P);
                 }
                 catch (System.InvalidOperationException) { }
             }
@@ -603,14 +752,12 @@ namespace KingdomDefense.UI
                 catch (System.InvalidOperationException) { }
             }
 
-            if (togglePause)
+            if (escPressed)
             {
-                // Nếu người chơi đang chọn tháp để cắm -> Esc sẽ hủy chọn tháp trước
-                if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
-                {
-                    BuildManager.Instance.SelectTowerToBuild(TowerType.None);
-                    return;
-                }
+                HandleEscAction();
+            }
+            else if (pPressed)
+            {
                 TogglePause();
             }
             else if (toggleSpeed)
@@ -844,9 +991,9 @@ namespace KingdomDefense.UI
         /// <summary>
         /// Cập nhật hiển thị Thanh năng lượng Mana (Top-Center):
         /// - Thanh slider pha lê xanh ngọc Cyan/Azure.
-        /// - Hiển thị chữ 'MANA 100 / 100 MP' với hiệu ứng phát sáng khi >= 60 MP (sẵn sàng chiêu cuối).
+        /// - Hiển thị chữ 'MANA 100 / 100 MP [Space]' với hiệu ứng phát sáng khi >= 60 MP (sẵn sàng chiêu cuối).
         /// </summary>
-        private void UpdateManaDisplay()
+        public void UpdateManaDisplay()
         {
             if (manaSlider != null)
             {
@@ -854,15 +1001,19 @@ namespace KingdomDefense.UI
             }
             if (manaText != null)
             {
-                manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP";
-
-                // Phát sáng xanh rực rỡ khi tích đủ >= 60 Mana
-                if (_currentMana >= 60f)
+                if (MeteorShowerSkill.Instance != null && MeteorShowerSkill.Instance.IsAiming)
                 {
+                    manaText.text = "☄️ ĐANG NGẮM [Space/Esc]";
+                    manaText.color = manaReadyColor;
+                }
+                else if (_currentMana >= 60f)
+                {
+                    manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP [Space]";
                     manaText.color = manaReadyColor;
                 }
                 else
                 {
+                    manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP";
                     manaText.color = Color.white;
                 }
             }
@@ -1107,8 +1258,16 @@ namespace KingdomDefense.UI
             {
                 Time.timeScale = 0f;
                 EnsurePauseOverlay();
-                if (pauseOverlay != null) pauseOverlay.SetActive(true);
-                Debug.Log("[GameHUD] Đã tạm dừng game (Pause).");
+                if (pauseOverlay != null)
+                {
+                    pauseOverlay.SetActive(true);
+                    Transform panelTr = pauseOverlay.transform.Find("PauseModal_Panel");
+                    if (panelTr != null)
+                    {
+                        StartCoroutine(AnimateModalPopRoutine(panelTr));
+                    }
+                }
+                Debug.Log("[GameHUD] Đã mở Pause Modal Dialog (Pause).");
             }
             else
             {
@@ -1119,6 +1278,19 @@ namespace KingdomDefense.UI
 
             UpdatePauseVisuals();
             OnPauseToggled?.Invoke(_isPaused);
+        }
+
+        /// <summary>
+        /// Đóng Pause Modal một cách an toàn (dùng khi kết thúc trận đấu hoặc cần đóng từ bên ngoài).
+        /// </summary>
+        public void ClosePauseModal()
+        {
+            if (!_isPaused) return;
+            _isPaused = false;
+            Time.timeScale = _isFastForward ? 2.0f : 1.0f;
+            if (pauseOverlay != null) pauseOverlay.SetActive(false);
+            UpdatePauseVisuals();
+            OnPauseToggled?.Invoke(false);
         }
 
         /// <summary>
