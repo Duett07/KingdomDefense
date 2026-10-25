@@ -15,6 +15,8 @@ namespace KingdomDefense.Cameras
     [RequireComponent(typeof(Camera))]
     public class CameraController : MonoBehaviour
     {
+        public static CameraController Instance { get; private set; }
+
         [Header("--- CẤU HÌNH GÓC NHÌN ISOMETRIC ---")]
         [Tooltip("Tự động đặt góc quay isometric khi bắt đầu")]
         [SerializeField] private bool autoAlignIsometric = true;
@@ -59,6 +61,29 @@ namespace KingdomDefense.Cameras
         private Vector3 _targetPosition;
         private Vector2 _lastMousePosition;
         private bool _isDragging;
+        private Vector3 _shakeOffset = Vector3.zero;
+        private float _shakeDuration = 0f;
+        private float _shakeMagnitude = 0.35f;
+
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+            else if (Instance != this) Destroy(gameObject);
+        }
+
+        public static void Shake(float duration = 0.4f, float magnitude = 0.35f)
+        {
+            if (Instance != null)
+            {
+                Instance.TriggerShake(duration, magnitude);
+            }
+        }
+
+        public void TriggerShake(float duration, float magnitude)
+        {
+            _shakeDuration = Mathf.Max(_shakeDuration, duration);
+            _shakeMagnitude = magnitude;
+        }
 
         private void Reset()
         {
@@ -86,8 +111,20 @@ namespace KingdomDefense.Cameras
             HandleZoom();
             ClampTargetPosition();
 
-            // Nội suy mượt mà vị trí camera đến vị trí mục tiêu
-            transform.position = Vector3.Lerp(transform.position, _targetPosition, Time.deltaTime * smoothSpeed);
+            // Cập nhật rung chấn màn hình (Screen Shake)
+            if (_shakeDuration > 0f)
+            {
+                _shakeOffset = Random.insideUnitSphere * _shakeMagnitude;
+                _shakeDuration -= Time.deltaTime;
+                if (_shakeDuration <= 0f)
+                {
+                    _shakeOffset = Vector3.zero;
+                }
+            }
+
+            // Nội suy mượt mà vị trí camera đến vị trí mục tiêu kèm độ rung giật
+            Vector3 basePos = Vector3.Lerp(transform.position - _shakeOffset, _targetPosition, Time.deltaTime * smoothSpeed);
+            transform.position = basePos + _shakeOffset;
         }
 
         /// <summary>
