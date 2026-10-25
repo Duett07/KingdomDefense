@@ -189,6 +189,24 @@ namespace KingdomDefense.Towers
 
         protected override void Update()
         {
+            if (isStunned)
+            {
+                stunDurationRemaining -= Time.deltaTime;
+                if (stunDurationRemaining <= 0f)
+                {
+                    isStunned = false;
+                    ShowStunVisual(false);
+                }
+                else
+                {
+                    if (stunIndicatorFX != null)
+                    {
+                        stunIndicatorFX.transform.Rotate(Vector3.up, 180f * Time.deltaTime);
+                    }
+                    return; // Bị choáng từ Boss: ngừng phát xung và làm chậm
+                }
+            }
+
             // 1. Cập nhật hoạt ảnh 3D Tinh Thể Băng & Vòng Tuyết
             AnimateFrostVisuals();
 

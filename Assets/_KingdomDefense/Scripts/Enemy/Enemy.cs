@@ -50,17 +50,31 @@ namespace KingdomDefense.Enemy
         private bool _isSlowed = false;
         private GameObject _frostSlowIndicator;
 
+        [Header("--- THUỘC TÍNH QUÁI BAY (FLYING) ---")]
+        [Tooltip("Có phải quái vật bay trên không (Dark Bat) không")]
+        [SerializeField] private bool isFlying = false;
+        [Tooltip("Độ cao bay tính từ mặt đất")]
+        [SerializeField] private float flightHeight = 2.8f;
+
         public string EnemyName => enemyName;
         public float MaxHealth => maxHealth;
         public float CurrentHealth => _currentHealth;
         public float Armor => armor;
         public float MagicResistance => magicResistance;
         public bool IsAoEResistant => isAoEResistant;
+        public bool IsFlying => isFlying;
+        public float FlightHeight => flightHeight;
         public int GoldReward => goldReward;
         public bool IsDead => _isDead;
         public bool IsSlowed => _isSlowed;
 
-        public void ConfigureStats(string name, float hp, float arm, float mr, int gold, bool aoeResist = false)
+        public void SetFlying(bool flying, float height = 2.8f)
+        {
+            isFlying = flying;
+            flightHeight = height;
+        }
+
+        public void ConfigureStats(string name, float hp, float arm, float mr, int gold, bool aoeResist = false, bool flying = false, float flyHeight = 2.8f)
         {
             enemyName = name;
             maxHealth = hp;
@@ -69,12 +83,14 @@ namespace KingdomDefense.Enemy
             magicResistance = mr;
             goldReward = gold;
             isAoEResistant = aoeResist;
+            isFlying = flying;
+            flightHeight = flyHeight;
             UpdateHealthBar();
         }
 
         public void ConfigureStats(string name, float hp, int gold)
         {
-            ConfigureStats(name, hp, 0f, 0f, gold, false);
+            ConfigureStats(name, hp, 0f, 0f, gold, false, false, 2.8f);
         }
 
         private void OnEnable()

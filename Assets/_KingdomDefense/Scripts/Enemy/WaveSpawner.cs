@@ -164,55 +164,116 @@ namespace KingdomDefense.Enemy
                 GameHUD.Instance.SetWave(_currentWaveIndex, totalWaves);
             }
 
-            List<SwordsmanType> waveTroops = BuildWaveComposition(_currentWaveIndex);
-            Debug.Log($"[WaveSpawner] === BẮT ĐẦU WAVE {_currentWaveIndex}/{totalWaves} ({waveTroops.Count} Chiến sĩ cầm kiếm) ===");
+            List<EnemyType> waveTroops = BuildWaveComposition(_currentWaveIndex);
+            Debug.Log($"[WaveSpawner] === BẮT ĐẦU WAVE {_currentWaveIndex}/{totalWaves} ({waveTroops.Count} Quái vật) ===");
 
-            foreach (SwordsmanType type in waveTroops)
+            foreach (EnemyType type in waveTroops)
             {
-                SpawnSwordsman(type);
+                SpawnEnemy(type);
                 yield return new WaitForSeconds(timeBetweenSpawns);
             }
 
             _isSpawningWave = false;
         }
 
-        private List<SwordsmanType> BuildWaveComposition(int wave)
+        /// <summary>
+        /// Xây dựng cơ cấu đội hình từng Wave chuẩn theo Bảng 2.3 trong Tài liệu thiết kế:
+        /// Wave 1: 10 Goblin Runner
+        /// Wave 2: 12 Goblin + 4 Orc Warrior
+        /// Wave 3: 8 Goblin + 8 Orc
+        /// Wave 4: 15 Goblin + 10 Orc + 2 Stone Golem
+        /// Wave 5: 12 Orc + 4 Stone Golem
+        /// Wave 6: 15 Goblin + 12 Orc + 4 Stone Golem + 10 Dark Bat
+        /// Wave 7: 25 Dark Bat (Bão Dơi Quỷ bay nhanh)
+        /// Wave 8: 30 Goblin + 15 Orc + 5 Golem (Biển quái vật)
+        /// Wave 9: 20 Goblin + 20 Orc + 8 Golem + 15 Dark Bat
+        /// Wave 10: 15 Orc + 6 Golem + 10 Dark Bat + 1 Trùm Cuối Boss Orcus (3800 HP)
+        /// </summary>
+        private List<EnemyType> BuildWaveComposition(int wave)
         {
-            List<SwordsmanType> list = new List<SwordsmanType>();
+            List<EnemyType> list = new List<EnemyType>();
 
-            if (wave == 1)
+            switch (wave)
             {
-                // Wave 1: 5 Chiến sĩ Kiếm & Khiên
-                for (int i = 0; i < 5; i++) list.Add(SwordsmanType.KnightSwordsman);
-            }
-            else if (wave == 2)
-            {
-                // Wave 2: 4 Kiếm sĩ cơ bản + 2 Kiếm sĩ Trinh sát chạy nhanh
-                for (int i = 0; i < 4; i++) list.Add(SwordsmanType.KnightSwordsman);
-                for (int i = 0; i < 2; i++) list.Add(SwordsmanType.ScoutSwordsman);
-            }
-            else if (wave == 3)
-            {
-                // Wave 3: Xuất hiện Đại kiếm sĩ Cuồng nộ (Berserker)
-                for (int i = 0; i < 4; i++) list.Add(SwordsmanType.KnightSwordsman);
-                for (int i = 0; i < 2; i++) list.Add(SwordsmanType.Berserker);
-                for (int i = 0; i < 2; i++) list.Add(SwordsmanType.ScoutSwordsman);
-            }
-            else
-            {
-                // Wave 4+: Binh đoàn hỗn hợp tăng dần
-                int knights = 3 + wave;
-                int berserkers = 1 + wave / 2;
-                int scouts = 2 + wave / 3;
-                int captains = wave >= 5 ? 1 + (wave - 4) / 2 : 0;
+                case 1:
+                    for (int i = 0; i < 10; i++) list.Add(EnemyType.GoblinRunner);
+                    break;
 
-                for (int i = 0; i < knights; i++) list.Add(SwordsmanType.KnightSwordsman);
-                for (int i = 0; i < berserkers; i++) list.Add(SwordsmanType.Berserker);
-                for (int i = 0; i < scouts; i++) list.Add(SwordsmanType.ScoutSwordsman);
-                for (int i = 0; i < captains; i++) list.Add(SwordsmanType.SwordCaptain);
+                case 2:
+                    for (int i = 0; i < 12; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 4; i++) list.Add(EnemyType.OrcWarrior);
+                    break;
+
+                case 3:
+                    for (int i = 0; i < 8; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 8; i++) list.Add(EnemyType.OrcWarrior);
+                    break;
+
+                case 4:
+                    for (int i = 0; i < 15; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 10; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 2; i++) list.Add(EnemyType.StoneGolem);
+                    break;
+
+                case 5:
+                    for (int i = 0; i < 12; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 4; i++) list.Add(EnemyType.StoneGolem);
+                    break;
+
+                case 6:
+                    for (int i = 0; i < 15; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 12; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 4; i++) list.Add(EnemyType.StoneGolem);
+                    for (int i = 0; i < 10; i++) list.Add(EnemyType.DarkBat);
+                    break;
+
+                case 7:
+                    for (int i = 0; i < 25; i++) list.Add(EnemyType.DarkBat);
+                    break;
+
+                case 8:
+                    for (int i = 0; i < 30; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 15; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 5; i++) list.Add(EnemyType.StoneGolem);
+                    break;
+
+                case 9:
+                    for (int i = 0; i < 20; i++) list.Add(EnemyType.GoblinRunner);
+                    for (int i = 0; i < 20; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 8; i++) list.Add(EnemyType.StoneGolem);
+                    for (int i = 0; i < 15; i++) list.Add(EnemyType.DarkBat);
+                    break;
+
+                case 10:
+                default:
+                    for (int i = 0; i < 15; i++) list.Add(EnemyType.OrcWarrior);
+                    for (int i = 0; i < 6; i++) list.Add(EnemyType.StoneGolem);
+                    for (int i = 0; i < 10; i++) list.Add(EnemyType.DarkBat);
+                    list.Add(EnemyType.BossOrcus); // Trùm cuối Ma Vương Orcus
+                    break;
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Xuất trận một quái vật chính thức (EnemyType) qua EnemyFactory.
+        /// </summary>
+        public GameObject SpawnEnemy(EnemyType type)
+        {
+            Vector3 spawnPos = Vector3.zero;
+            if (Waypoints.Waypoints.Points != null && Waypoints.Waypoints.Points.Length > 0)
+            {
+                Vector3 basePos = Waypoints.Waypoints.Points[0].position;
+                float sideJitter = Random.Range(-0.35f, 0.35f);
+                spawnPos = basePos + new Vector3(sideJitter, 0f, 0f);
+            }
+
+            GameObject enemyObj = EnemyFactory.CreateEnemy(type, spawnPos, Quaternion.identity, transform);
+            enemyObj.name = $"{type}_W{_currentWaveIndex}_{Time.frameCount}";
+            enemyObj.SetActive(true);
+
+            return enemyObj;
         }
 
         /// <summary>
