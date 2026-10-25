@@ -61,6 +61,9 @@ namespace KingdomDefense.UI
         public int CurrentWave => _currentWave;
         public float CurrentMana => _currentMana;
 
+        public event System.Action<int> OnLivesChanged;
+        public event System.Action<int> OnGoldChanged;
+
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -176,6 +179,7 @@ namespace KingdomDefense.UI
         {
             _currentLives = Mathf.Max(0, lives);
             if (livesText != null) livesText.text = _currentLives.ToString();
+            OnLivesChanged?.Invoke(_currentLives);
 
             if (_currentLives <= 0)
             {
@@ -195,6 +199,7 @@ namespace KingdomDefense.UI
         {
             _currentGold = Mathf.Max(0, gold);
             if (goldText != null) goldText.text = _currentGold.ToString();
+            OnGoldChanged?.Invoke(_currentGold);
 
             UpdateTowerButtonsAvailability();
         }

@@ -57,6 +57,8 @@ namespace KingdomDefense.Enemy
         public float WaveCountdown => _waveCountdown;
         public int TotalWaves => waveConfig != null ? waveConfig.TotalWaves : totalWaves;
         public WaveConfig Config => waveConfig;
+        public bool IsSpawningWave => _isSpawningWave;
+        public bool AllWavesSpawned => _currentWaveIndex >= TotalWaves && !_isSpawningWave;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoInitialize()
