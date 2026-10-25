@@ -39,13 +39,41 @@ namespace KingdomDefense.Towers
 
         private void Awake()
         {
-            // Thiết lập thông số Tháp Băng Phong chuẩn Bảng 2.1
-            range = 4.5f;        // Bán kính bão tuyết 4.5m
-            damage = 10f;        // 10 Sát thương băng mỗi nhịp
-            fireRate = 1.0f;     // Tỏa xung băng 1 lần mỗi giây
-            turnSpeed = 0f;      // Tháp hào quang 360 độ không cần xoay nòng đơn lẻ
+            towerDisplayName = "Tháp Băng Phong";
+            baseCost = 175;
+            upgradeCostLv2 = 120;
+            upgradeCostLv3 = 200;
+            totalInvestedGold = baseCost;
 
+            turnSpeed = 0f; // Tháp hào quang 360 độ không cần xoay nòng đơn lẻ
+            ApplyLevelStats();
             EnsureReferences();
+        }
+
+        public override void ApplyLevelStats()
+        {
+            switch (level)
+            {
+                case 1:
+                    damage = 10f;
+                    range = 4.0f;
+                    fireRate = 1.0f;
+                    slowPercentage = 0.40f;
+                    break;
+                case 2:
+                    damage = 18f;
+                    range = 4.8f;
+                    fireRate = 1.0f;
+                    slowPercentage = 0.50f;
+                    break;
+                case 3:
+                default:
+                    damage = 30f;
+                    range = 5.5f;
+                    fireRate = 1.0f;
+                    slowPercentage = 0.65f;
+                    break;
+            }
         }
 
         protected override void EnsureReferences()

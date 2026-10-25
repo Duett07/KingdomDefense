@@ -34,13 +34,38 @@ namespace KingdomDefense.Towers
 
         private void Awake()
         {
-            // Thiết lập thông số Tháp Pháp Sư chuẩn Bảng 2.1
-            range = 5.0f;
-            damage = 45f;        // 45 Sát thương phép xuyên giáp
-            fireRate = 1.0f;     // Bắn 1 phát mỗi 1.0 giây
-            turnSpeed = 14f;
+            towerDisplayName = "Tháp Pháp Sư";
+            baseCost = 150;
+            upgradeCostLv2 = 150;
+            upgradeCostLv3 = 240;
+            totalInvestedGold = baseCost;
 
+            turnSpeed = 14f;
+            ApplyLevelStats();
             EnsureReferences();
+        }
+
+        public override void ApplyLevelStats()
+        {
+            switch (level)
+            {
+                case 1:
+                    damage = 45f;
+                    range = 5.0f;
+                    fireRate = 1.0f;
+                    break;
+                case 2:
+                    damage = 90f;
+                    range = 5.5f;
+                    fireRate = 1.2f;
+                    break;
+                case 3:
+                default:
+                    damage = 170f;
+                    range = 6.5f;
+                    fireRate = 1.5f;
+                    break;
+            }
         }
 
         protected override void EnsureReferences()

@@ -23,14 +23,39 @@ namespace KingdomDefense.Towers
 
         protected override void Start()
         {
-            // Thiết lập chỉ số chiến đấu chuyên biệt cho Tháp Cung
-            range = 7.0f;
-            fireRate = 1.4f;
-            damage = 30f;
-            turnSpeed = 12f;
+            towerDisplayName = "Tháp Xạ Thủ";
+            baseCost = 100;
+            upgradeCostLv2 = 70;
+            upgradeCostLv3 = 120;
+            totalInvestedGold = baseCost;
 
+            turnSpeed = 12f;
+            ApplyLevelStats();
             SetupArcherFigure();
             base.Start();
+        }
+
+        public override void ApplyLevelStats()
+        {
+            switch (level)
+            {
+                case 1:
+                    damage = 20f;
+                    range = 5.5f;
+                    fireRate = 1.5f;
+                    break;
+                case 2:
+                    damage = 35f;
+                    range = 6.2f;
+                    fireRate = 1.8f;
+                    break;
+                case 3:
+                default:
+                    damage = 60f;
+                    range = 7.0f;
+                    fireRate = 2.2f;
+                    break;
+            }
         }
 
         /// <summary>

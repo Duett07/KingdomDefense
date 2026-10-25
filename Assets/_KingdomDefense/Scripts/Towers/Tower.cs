@@ -1,5 +1,7 @@
 using UnityEngine;
 using KingdomDefense.Enemy;
+using KingdomDefense.Build;
+using KingdomDefense.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -8,11 +10,19 @@ namespace KingdomDefense.Towers
 {
     /// <summary>
     /// Lớp cơ sở (Base Class) cho tất cả các loại Tháp phòng thủ trong Kingdom Defense.
-    /// Thực thi giải thuật quét và chọn mục tiêu ưu tiên quái gần cổng thành nhất (Đoạn mã 4.1),
-    /// tự động xoay nòng/mâm pháo bằng Quaternion.Lerp và bắn đạn/mũi tên theo chu kỳ fireRate.
+    /// Quản lý cấp độ (Level 1 -> 2 -> 3), nâng cấp, bán hoàn 70% vàng,
+    /// quét mục tiêu ưu tiên quái gần cổng thành nhất, và vẽ vòng tròn tầm bắn tương tác.
     /// </summary>
     public class Tower : MonoBehaviour
     {
+        [Header("--- THIẾT LẬP CẤP ĐỘ & KINH TẾ ---")]
+        [SerializeField] protected string towerDisplayName = "Tháp Phòng Thủ";
+        [SerializeField] protected int level = 1;
+        [SerializeField] protected int baseCost = 100;
+        [SerializeField] protected int upgradeCostLv2 = 70;
+        [SerializeField] protected int upgradeCostLv3 = 120;
+        [SerializeField] protected int totalInvestedGold = 100;
+
         [Header("--- THIẾT LẬP TẤN CÔNG ---")]
         [Tooltip("Bán kính tầm bắn của tháp")]
         [SerializeField] protected float range = 6.5f;
@@ -45,9 +55,21 @@ namespace KingdomDefense.Towers
         protected float stunDurationRemaining = 0f;
         protected bool isStunned = false;
         protected GameObject stunIndicatorFX;
+        private LineRenderer _rangeLine;
+        private GameObject _tierVisualBadge;
+
+        public Node ParentNode { get; set; }
+        public string TowerDisplayName => towerDisplayName;
+        public int Level => level;
+        public int MaxLevel => 3;
+        public bool CanUpgrade => level < MaxLevel;
+        public int TotalInvestedGold => totalInvestedGold;
+        public int NextUpgradeCost => level == 1 ? upgradeCostLv2 : (level == 2 ? upgradeCostLv3 : 0);
+        public int SellAmount => Mathf.RoundToInt(totalInvestedGold * 0.7f);
 
         public float Range => range;
         public float Damage => damage;
+        public float FireRate => fireRate;
         public Transform Target => target;
         public bool CanTargetFlying => canTargetFlying;
         public bool IsStunned => isStunned;
@@ -290,6 +312,234 @@ namespace KingdomDefense.Towers
             arrow.AddComponent<Arrow>();
             arrow.SetActive(false);
             return arrow;
+        }
+
+        public void InitializeBaseCost(int cost)
+        {
+            baseCost = cost;
+            totalInvestedGold = cost;
+        }
+
+        public virtual bool TryUpgrade()
+        {
+            if (!CanUpgrade) return false;
+            int cost = NextUpgradeCost;
+            if (GameHUD.Instance != null && !GameHUD.Instance.SpendGold(cost))
+            {
+                Debug.LogWarning($"[Tower] Không đủ vàng! Cần {cost} vàng để nâng cấp.");
+                return false;
+            }
+
+            totalInvestedGold += cost;
+            level++;
+
+            ApplyLevelStats();
+            UpdateVisualsForLevel();
+            SpawnUpgradeVFX();
+
+            if (_rangeLine != null && _rangeLine.enabled)
+            {
+                ShowRangeIndicator(true);
+            }
+
+            Debug.Log($"<color=#4CAF50>[Tower] Đã nâng cấp {towerDisplayName} lên CẤP {level}! (Đầu tư lũy kế: {totalInvestedGold} Vàng)</color>");
+            return true;
+        }
+
+        public virtual void ApplyLevelStats()
+        {
+            // Các lớp con sẽ override để cập nhật range, damage, fireRate chuẩn theo Bảng 2.2
+        }
+
+        public virtual void UpdateVisualsForLevel()
+        {
+            if (_tierVisualBadge != null) Destroy(_tierVisualBadge);
+
+            _tierVisualBadge = new GameObject("Tier_Visual_Badge");
+            _tierVisualBadge.transform.SetParent(transform, false);
+            _tierVisualBadge.transform.localPosition = new Vector3(0f, 2.7f, 0f);
+
+            if (level == 2)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    GameObject star = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    star.transform.SetParent(_tierVisualBadge.transform, false);
+                    star.transform.localPosition = new Vector3((i == 0 ? -0.22f : 0.22f), 0f, 0f);
+                    star.transform.localScale = new Vector3(0.18f, 0.18f, 0.08f);
+                    Destroy(star.GetComponent<Collider>());
+
+                    Renderer r = star.GetComponent<Renderer>();
+                    if (r != null)
+                    {
+                        Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                        Material m = new Material(s) { color = new Color(0.8f, 0.88f, 0.95f) };
+                        r.sharedMaterial = m;
+                    }
+                }
+            }
+            else if (level == 3)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    GameObject star = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    star.transform.SetParent(_tierVisualBadge.transform, false);
+                    star.transform.localPosition = new Vector3((i - 1) * 0.25f, 0.05f * Mathf.Abs(i - 1), 0f);
+                    star.transform.localScale = new Vector3(0.22f, 0.22f, 0.1f);
+                    Destroy(star.GetComponent<Collider>());
+
+                    Renderer r = star.GetComponent<Renderer>();
+                    if (r != null)
+                    {
+                        Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                        Material m = new Material(s) { color = new Color(1.0f, 0.85f, 0.15f) };
+                        r.sharedMaterial = m;
+                    }
+                }
+
+                GameObject aura = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                aura.transform.SetParent(_tierVisualBadge.transform, false);
+                aura.transform.localPosition = new Vector3(0f, -0.1f, 0f);
+                aura.transform.localScale = new Vector3(1.1f, 0.02f, 1.1f);
+                Destroy(aura.GetComponent<Collider>());
+                Renderer ar = aura.GetComponent<Renderer>();
+                if (ar != null)
+                {
+                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material am = new Material(s) { color = new Color(1f, 0.9f, 0.3f, 0.5f) };
+                    ar.sharedMaterial = am;
+                }
+            }
+        }
+
+        public virtual void Sell()
+        {
+            int refund = SellAmount;
+            if (GameHUD.Instance != null)
+            {
+                GameHUD.Instance.AddGold(refund);
+            }
+
+            Debug.Log($"<color=#FF9800>[Tower] Đã bán {towerDisplayName} Cấp {level}! (+{refund} Vàng, hoàn trả 70% của {totalInvestedGold} Vàng)</color>");
+
+            SpawnSellVFX();
+
+            if (ParentNode != null)
+            {
+                ParentNode.ClearTurret();
+            }
+
+            Destroy(gameObject);
+        }
+
+        public void ShowRangeIndicator(bool show)
+        {
+            if (!show)
+            {
+                if (_rangeLine != null) _rangeLine.enabled = false;
+                return;
+            }
+
+            if (_rangeLine == null)
+            {
+                GameObject rangeObj = new GameObject("Range_Indicator_Line");
+                rangeObj.transform.SetParent(transform, false);
+                rangeObj.transform.localPosition = new Vector3(0f, 0.08f, 0f);
+
+                _rangeLine = rangeObj.AddComponent<LineRenderer>();
+                _rangeLine.useWorldSpace = false;
+                _rangeLine.loop = true;
+                _rangeLine.startWidth = 0.08f;
+                _rangeLine.endWidth = 0.08f;
+
+                Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color");
+                Material m = new Material(s);
+                m.color = new Color(0.2f, 0.95f, 0.45f, 0.9f);
+                _rangeLine.sharedMaterial = m;
+            }
+
+            int segments = 64;
+            _rangeLine.positionCount = segments;
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = i * Mathf.PI * 2f / segments;
+                Vector3 pos = new Vector3(Mathf.Cos(angle) * range, 0.05f, Mathf.Sin(angle) * range);
+                _rangeLine.SetPosition(i, pos);
+            }
+
+            _rangeLine.enabled = true;
+        }
+
+        protected virtual void OnMouseDown()
+        {
+            if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+            {
+                return;
+            }
+
+            if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
+            if (TowerUI.Instance != null)
+            {
+                TowerUI.Instance.SelectTower(this);
+            }
+        }
+
+        protected void SpawnUpgradeVFX()
+        {
+            GameObject vfx = new GameObject("VFX_Tower_Upgrade_Burst");
+            vfx.transform.position = transform.position + new Vector3(0, 1.2f, 0);
+
+            for (int i = 0; i < 12; i++)
+            {
+                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                spark.transform.SetParent(vfx.transform);
+                float angle = i * Mathf.PI * 2f / 12f;
+                Vector3 dir = new Vector3(Mathf.Cos(angle), Random.Range(0.6f, 1.4f), Mathf.Sin(angle)).normalized;
+                spark.transform.localPosition = dir * 0.4f;
+                spark.transform.localScale = Vector3.one * 0.2f;
+                Destroy(spark.GetComponent<Collider>());
+
+                Renderer r = spark.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material m = new Material(s) { color = new Color(1.0f, 0.85f, 0.2f, 0.95f) };
+                    r.sharedMaterial = m;
+                }
+            }
+
+            Destroy(vfx, 0.6f);
+        }
+
+        protected void SpawnSellVFX()
+        {
+            GameObject vfx = new GameObject("VFX_Tower_Sell_Coins");
+            vfx.transform.position = transform.position + new Vector3(0, 0.8f, 0);
+
+            for (int i = 0; i < 8; i++)
+            {
+                GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                coin.transform.SetParent(vfx.transform);
+                float angle = i * Mathf.PI * 2f / 8f;
+                Vector3 dir = new Vector3(Mathf.Cos(angle), 1.0f, Mathf.Sin(angle)).normalized;
+                coin.transform.localPosition = dir * 0.35f;
+                coin.transform.localScale = new Vector3(0.2f, 0.04f, 0.2f);
+                Destroy(coin.GetComponent<Collider>());
+
+                Renderer r = coin.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material m = new Material(s) { color = new Color(0.95f, 0.75f, 0.1f) };
+                    r.sharedMaterial = m;
+                }
+            }
+
+            Destroy(vfx, 0.5f);
         }
 
         protected virtual void OnDrawGizmosSelected()

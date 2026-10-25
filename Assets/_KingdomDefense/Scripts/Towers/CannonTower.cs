@@ -34,14 +34,42 @@ namespace KingdomDefense.Towers
 
         private void Awake()
         {
-            // Thiết lập thông số Tháp Đại Bác chuẩn Bảng 2.1
-            range = 5.2f;
-            damage = 65f;
-            fireRate = 0.6f;     // Bắn 1 quả mỗi ~1.67 giây
+            towerDisplayName = "Tháp Đại Bác";
+            baseCost = 125;
+            upgradeCostLv2 = 110;
+            upgradeCostLv3 = 180;
+            totalInvestedGold = baseCost;
+
             turnSpeed = 8.5f;
             canTargetFlying = false; // Pháo mặt đất không thể nhắm bắn quái bay Dark Bat
-
+            ApplyLevelStats();
             EnsureReferences();
+        }
+
+        public override void ApplyLevelStats()
+        {
+            switch (level)
+            {
+                case 1:
+                    damage = 65f;
+                    range = 4.5f;
+                    fireRate = 0.6f;
+                    explosionRadius = 2.5f;
+                    break;
+                case 2:
+                    damage = 120f;
+                    range = 5.0f;
+                    fireRate = 0.7f;
+                    explosionRadius = 3.0f;
+                    break;
+                case 3:
+                default:
+                    damage = 220f;
+                    range = 5.8f;
+                    fireRate = 0.9f;
+                    explosionRadius = 3.8f;
+                    break;
+            }
         }
 
         protected override void EnsureReferences()
