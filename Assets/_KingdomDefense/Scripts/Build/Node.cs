@@ -1,4 +1,6 @@
 using UnityEngine;
+using KingdomDefense.Towers;
+using KingdomDefense.UI;
 
 namespace KingdomDefense.Build
 {
@@ -109,7 +111,15 @@ namespace KingdomDefense.Build
         {
             if (HasTurret)
             {
-                Debug.Log($"[Node] Ô tại {transform.position} đã có công trình: {currentTurret.name}");
+                // Nếu người chơi không đang ở chế độ cắm tháp mới -> chọn tháp để nâng cấp / bán
+                if (BuildManager.Instance == null || BuildManager.Instance.SelectedTowerType == TowerType.None)
+                {
+                    Tower tower = currentTurret.GetComponent<Tower>();
+                    if (tower != null && TowerUI.Instance != null)
+                    {
+                        TowerUI.Instance.SelectTower(tower);
+                    }
+                }
                 return;
             }
 
@@ -144,6 +154,12 @@ namespace KingdomDefense.Build
         {
             currentTurret = turret;
 
+            Tower tower = turret.GetComponent<Tower>();
+            if (tower != null)
+            {
+                tower.ParentNode = this;
+            }
+
             // Ẩn huy hiệu thợ xây trung tâm khi tháp đã được dựng lên
             Transform centerMarker = transform.Find("Center_Marker");
             if (centerMarker != null)
@@ -152,6 +168,25 @@ namespace KingdomDefense.Build
             }
 
             SpawnBuildDustEffect(GetBuildPosition());
+        }
+
+        /// <summary>
+        /// Giải phóng ô Node khi tháp bị bán.
+        /// </summary>
+        public void ClearTurret()
+        {
+            currentTurret = null;
+
+            Transform centerMarker = transform.Find("Center_Marker");
+            if (centerMarker != null)
+            {
+                centerMarker.gameObject.SetActive(true);
+            }
+
+            if (_tempMaterial != null)
+            {
+                _tempMaterial.color = _originalColor;
+            }
         }
 
         /// <summary>

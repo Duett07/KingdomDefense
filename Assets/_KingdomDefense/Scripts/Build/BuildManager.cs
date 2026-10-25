@@ -274,6 +274,13 @@ namespace KingdomDefense.Build
             }
 
             node.SetTurret(towerInstance);
+
+            Tower builtTower = towerInstance.GetComponent<Tower>();
+            if (builtTower != null)
+            {
+                builtTower.InitializeBaseCost(cost);
+            }
+
             Debug.Log($"[BuildManager] Đã xây thành công {_selectedTowerType} tại {buildPos}! (-{cost} Vàng)");
 
             // Bỏ chọn sau khi xây xong
