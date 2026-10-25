@@ -75,9 +75,11 @@ namespace KingdomDefense.Enemy
                 return;
             }
 
-            // Bắt đầu hành quân từ điểm mốc đầu tiên
+            // Bắt đầu hành quân từ điểm mốc đầu tiên (quái bay ở cao độ flightHeight)
             _targetPoint = Waypoints.Waypoints.Points[0];
-            transform.position = _targetPoint.position;
+            Enemy enemyComp = GetComponent<Enemy>();
+            float yOffset = (enemyComp != null && enemyComp.IsFlying) ? enemyComp.FlightHeight : 0f;
+            transform.position = _targetPoint.position + Vector3.up * yOffset;
 
             // Hướng tới điểm tiếp theo
             if (Waypoints.Waypoints.Points.Length > 1)
@@ -91,8 +93,12 @@ namespace KingdomDefense.Enemy
         {
             if (_hasEnded || _targetPoint == null) return;
 
-            // 1. Tính toán vector hướng tới điểm mốc mục tiêu (bỏ qua độ lệch trục Y nếu có)
-            Vector3 targetPos = _targetPoint.position;
+            Enemy enemyComp = GetComponent<Enemy>();
+            bool isFly = (enemyComp != null && enemyComp.IsFlying);
+            float yOffset = isFly ? enemyComp.FlightHeight : 0f;
+
+            // 1. Tính toán vector hướng tới điểm mốc mục tiêu
+            Vector3 targetPos = _targetPoint.position + Vector3.up * yOffset;
             Vector3 currentPos = transform.position;
             Vector3 dir = (targetPos - currentPos);
             dir.y = 0f;
@@ -107,12 +113,20 @@ namespace KingdomDefense.Enemy
             // 3. Di chuyển tịnh tiến về phía trước theo tốc độ
             transform.position += dir.normalized * (speed * Time.deltaTime);
 
-            // 4. Hiệu ứng nhịp bước chân sinh động (Bobbing & Swaying tự nhiên)
-            _walkCycle += Time.deltaTime * speed * 3.5f;
-            float bob = Mathf.Abs(Mathf.Sin(_walkCycle)) * 0.06f;
-            float sway = Mathf.Sin(_walkCycle) * 2.5f;
+            if (isFly)
+            {
+                Vector3 p = transform.position;
+                p.y = _targetPoint.position.y + yOffset;
+                transform.position = p;
+            }
 
-            // Đung đưa nhẹ mô hình 3D theo bước chạy
+            // 4. Hiệu ứng nhịp bước chân hoặc vỗ cánh sinh động
+            float cycleSpeed = isFly ? 10f : (speed * 3.5f);
+            _walkCycle += Time.deltaTime * cycleSpeed;
+            float bob = isFly ? (Mathf.Sin(_walkCycle) * 0.12f) : (Mathf.Abs(Mathf.Sin(_walkCycle)) * 0.06f);
+            float sway = isFly ? (Mathf.Sin(_walkCycle * 0.5f) * 5.0f) : (Mathf.Sin(_walkCycle) * 2.5f);
+
+            // Đung đưa nhẹ mô hình 3D theo bước chạy hoặc nhịp vỗ cánh
             if (transform.childCount > 0)
             {
                 Transform visual = transform.GetChild(0);

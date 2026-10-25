@@ -33,15 +33,24 @@ namespace KingdomDefense.Towers
         [Tooltip("Tốc độ xoay ngắm bắn")]
         [SerializeField] protected float turnSpeed = 10f;
 
+        [Header("--- THIẾT LẬP MỤC TIÊU & TRẠNG THÁI ---")]
+        [Tooltip("Tháp có thể bắn quái bay (Dark Bat) không")]
+        [SerializeField] protected bool canTargetFlying = true;
+
         [Header("--- ĐẠN & MŨI TÊN ---")]
         [SerializeField] protected GameObject projectilePrefab;
 
         protected Transform target;
         protected float fireCountdown = 0f;
+        protected float stunDurationRemaining = 0f;
+        protected bool isStunned = false;
+        protected GameObject stunIndicatorFX;
 
         public float Range => range;
         public float Damage => damage;
         public Transform Target => target;
+        public bool CanTargetFlying => canTargetFlying;
+        public bool IsStunned => isStunned;
 
         protected virtual void Start()
         {
@@ -52,6 +61,25 @@ namespace KingdomDefense.Towers
 
         protected virtual void Update()
         {
+            // Kiểm tra trạng thái bị choáng (Stun) từ Boss Orcus
+            if (isStunned)
+            {
+                stunDurationRemaining -= Time.deltaTime;
+                if (stunDurationRemaining <= 0f)
+                {
+                    isStunned = false;
+                    ShowStunVisual(false);
+                }
+                else
+                {
+                    if (stunIndicatorFX != null)
+                    {
+                        stunIndicatorFX.transform.Rotate(Vector3.up, 180f * Time.deltaTime);
+                    }
+                    return; // Đang bị choáng: không xoay và không thể bắn
+                }
+            }
+
             if (target == null) return;
 
             // Xoay mâm pháo hướng về mục tiêu bằng Quaternion.Lerp
@@ -68,6 +96,57 @@ namespace KingdomDefense.Towers
         }
 
         /// <summary>
+        /// Làm choáng tháp trong duration giây (kỹ năng dậm đất của Boss Orcus).
+        /// </summary>
+        public virtual void Stun(float duration)
+        {
+            stunDurationRemaining = Mathf.Max(stunDurationRemaining, duration);
+            if (!isStunned)
+            {
+                isStunned = true;
+                ShowStunVisual(true);
+            }
+        }
+
+        protected virtual void ShowStunVisual(bool show)
+        {
+            if (show)
+            {
+                if (stunIndicatorFX == null)
+                {
+                    stunIndicatorFX = new GameObject("Tower_Stun_FX");
+                    stunIndicatorFX.transform.SetParent(transform, false);
+                    stunIndicatorFX.transform.localPosition = new Vector3(0f, 3.2f, 0f);
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        GameObject star = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        star.name = $"Stun_Star_{i}";
+                        star.transform.SetParent(stunIndicatorFX.transform, false);
+                        float angle = i * (Mathf.PI * 2f / 3f);
+                        star.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.45f, 0f, Mathf.Sin(angle) * 0.45f);
+                        star.transform.localScale = Vector3.one * 0.12f;
+                        Destroy(star.GetComponent<Collider>());
+
+                        Renderer r = star.GetComponent<Renderer>();
+                        if (r != null)
+                        {
+                            Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                            Material mat = new Material(s);
+                            mat.color = new Color(1f, 0.9f, 0.2f);
+                            r.sharedMaterial = mat;
+                        }
+                    }
+                }
+                stunIndicatorFX.SetActive(true);
+            }
+            else
+            {
+                if (stunIndicatorFX != null) stunIndicatorFX.SetActive(false);
+            }
+        }
+
+        /// <summary>
         /// Giải thuật quét và chọn mục tiêu của tháp (Đoạn mã 4.1 trong tài liệu thiết kế).
         /// Ưu tiên quái vật đã đi xa nhất trên đường mòn (gần Cổng thành hoàng gia nhất).
         /// </summary>
@@ -80,6 +159,13 @@ namespace KingdomDefense.Towers
             foreach (GameObject enemy in enemies)
             {
                 if (enemy == null) continue;
+
+                Enemy.Enemy e = enemy.GetComponent<Enemy.Enemy>();
+                if (e != null)
+                {
+                    if (e.IsDead) continue;
+                    if (e.IsFlying && !canTargetFlying) continue; // Bỏ qua quái bay nếu tháp không thể bắn quái bay
+                }
 
                 float distanceToTower = Vector3.Distance(transform.position, enemy.transform.position);
                 if (distanceToTower <= range)

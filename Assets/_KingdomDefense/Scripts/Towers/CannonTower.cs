@@ -39,6 +39,7 @@ namespace KingdomDefense.Towers
             damage = 65f;
             fireRate = 0.6f;     // Bắn 1 quả mỗi ~1.67 giây
             turnSpeed = 8.5f;
+            canTargetFlying = false; // Pháo mặt đất không thể nhắm bắn quái bay Dark Bat
 
             EnsureReferences();
         }
