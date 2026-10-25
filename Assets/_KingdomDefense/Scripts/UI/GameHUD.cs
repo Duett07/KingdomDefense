@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using KingdomDefense.Build;
 using KingdomDefense.Core;
+using KingdomDefense.Cameras;
 using KingdomDefense.Skills;
 
 namespace KingdomDefense.UI
@@ -846,12 +847,14 @@ namespace KingdomDefense.UI
             _currentLives = Mathf.Max(0, lives);
             if (livesText != null) livesText.text = _currentLives.ToString();
 
-            // Hiệu ứng giật nảy khi bị quái vật trừ máu
+            // Hiệu ứng giật nảy và rung màn hình cảnh báo khi bị quái vật trừ máu
             if (_currentLives < prevLives)
             {
                 if (_livesPunchRoutine != null) StopCoroutine(_livesPunchRoutine);
                 _livesPunchRoutine = StartCoroutine(PunchScaleRoutine(livesText.transform, 1.35f, 0.20f));
                 if (livesIcon != null) StartCoroutine(PunchScaleRoutine(livesIcon.transform, 1.30f, 0.20f));
+
+                CameraController.ShakeCastleBreach();
             }
 
             // Xử lý Cảnh báo nguy cấp: Lives < 5

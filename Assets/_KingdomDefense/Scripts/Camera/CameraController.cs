@@ -59,30 +59,156 @@ namespace KingdomDefense.Cameras
 
         // Vị trí mục tiêu nội suy mượt mà
         private Vector3 _targetPosition;
+        private Vector3 _currentBasePosition;
         private Vector2 _lastMousePosition;
         private bool _isDragging;
+
+        [Header("--- THIẾT LẬP RUNG MÀN HÌNH (SCREEN SHAKE) ---")]
+        [Tooltip("Bật/tắt hiệu ứng rung màn hình (Hỗ trợ người chơi nhạy cảm chuyển động)")]
+        [SerializeField] private bool enableScreenShake = true;
+        [Tooltip("Hệ số cường độ rung màn hình (0.0: tắt hẳn, 1.0: chuẩn, 2.0: rung mạnh)")]
+        [Range(0f, 2f)]
+        [SerializeField] private float shakeIntensityMultiplier = 1.0f;
+
         private Vector3 _shakeOffset = Vector3.zero;
         private float _shakeDuration = 0f;
+        private float _totalShakeDuration = 0f;
         private float _shakeMagnitude = 0.35f;
+        private float _shakeTimer = 0f;
+
+        public bool EnableScreenShake
+        {
+            get => enableScreenShake;
+            set
+            {
+                enableScreenShake = value;
+                if (!enableScreenShake)
+                {
+                    StopShake();
+                }
+            }
+        }
+
+        public float ShakeIntensityMultiplier
+        {
+            get => shakeIntensityMultiplier;
+            set => shakeIntensityMultiplier = Mathf.Clamp(value, 0f, 2f);
+        }
+
+        public Vector3 CurrentShakeOffset => _shakeOffset;
+        public bool IsShaking => _shakeDuration > 0f && enableScreenShake && shakeIntensityMultiplier > 0.001f;
+        public float RemainingShakeDuration => _shakeDuration;
+        public float ShakeMagnitude => _shakeMagnitude;
+        public Vector3 CurrentBasePosition => _currentBasePosition;
+        public Vector3 TargetPosition => _targetPosition;
 
         private void Awake()
         {
-            if (Instance == null) Instance = this;
-            else if (Instance != this) Destroy(gameObject);
+            if (Instance == null)
+            {
+                Instance = this;
+                _currentBasePosition = transform.position;
+                _targetPosition = transform.position;
+            }
+            else if (Instance != this)
+            {
+                Destroy(gameObject);
+            }
         }
 
         public static void Shake(float duration = 0.4f, float magnitude = 0.35f)
         {
+            if (Instance == null)
+            {
+                Instance = Object.FindAnyObjectByType<CameraController>();
+                if (Instance == null && Camera.main != null)
+                {
+                    Instance = Camera.main.gameObject.AddComponent<CameraController>();
+                }
+            }
+
             if (Instance != null)
             {
                 Instance.TriggerShake(duration, magnitude);
             }
         }
 
+        /// <summary>
+        /// Rung chấn cực mạnh khi thiên thạch kỹ năng Meteor va chạm mặt đất (0.5s, độ rung 0.45).
+        /// </summary>
+        public static void ShakeMeteor() => Shake(0.5f, 0.45f);
+
+        /// <summary>
+        /// Rung chấn cảnh báo nguy cấp khi quái vật lọt vào thành / mất mạng (0.35s, độ rung 0.35).
+        /// </summary>
+        public static void ShakeCastleBreach() => Shake(0.35f, 0.35f);
+
+        /// <summary>
+        /// Rung chấn uy lực vừa phải khi đạn pháo phát nổ diện rộng (0.25s, độ rung 0.20).
+        /// </summary>
+        public static void ShakeCannonExplosion() => Shake(0.25f, 0.20f);
+
+        /// <summary>
+        /// Rung nhịp đất nhẹ khi Boss Orcus dậm chân chấn động (0.2s, độ rung 0.15).
+        /// </summary>
+        public static void ShakeBossStomp() => Shake(0.2f, 0.15f);
+
         public void TriggerShake(float duration, float magnitude)
         {
+            if (!enableScreenShake || shakeIntensityMultiplier <= 0.001f) return;
+
             _shakeDuration = Mathf.Max(_shakeDuration, duration);
-            _shakeMagnitude = magnitude;
+            _totalShakeDuration = Mathf.Max(_totalShakeDuration, _shakeDuration);
+            _shakeMagnitude = Mathf.Max(_shakeMagnitude, magnitude);
+        }
+
+        public void StopShake()
+        {
+            _shakeDuration = 0f;
+            _totalShakeDuration = 0f;
+            _shakeMagnitude = 0f;
+            _shakeOffset = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Cập nhật tính toán rung chấn: Trauma quadratic decay (u^2) + Perlin noise đa trục.
+        /// Tách biệt hoàn toàn khỏi logic di chuyển để triệt tiêu hiện tượng trôi camera (Zero-drift).
+        /// </summary>
+        public void UpdateShake(float deltaTime)
+        {
+            if (_shakeDuration > 0f && enableScreenShake && shakeIntensityMultiplier > 0.001f)
+            {
+                float u = _totalShakeDuration > 0.0001f ? Mathf.Clamp01(_shakeDuration / _totalShakeDuration) : 0f;
+                float trauma = u * u * _shakeMagnitude * shakeIntensityMultiplier;
+
+                _shakeTimer += deltaTime * 25f;
+                float offsetX = (Mathf.PerlinNoise(_shakeTimer, 0.15f) - 0.5f) * 2f * trauma;
+                float offsetY = (Mathf.PerlinNoise(0.48f, _shakeTimer) - 0.5f) * 2f * trauma;
+                float offsetZ = (Mathf.PerlinNoise(_shakeTimer, _shakeTimer) - 0.5f) * 2f * trauma * 0.5f;
+
+                _shakeOffset = new Vector3(offsetX, offsetY, offsetZ);
+
+                _shakeDuration -= deltaTime;
+                if (_shakeDuration <= 0f)
+                {
+                    StopShake();
+                }
+            }
+            else
+            {
+                StopShake();
+            }
+        }
+
+        /// <summary>
+        /// Đặt vị trí camera tức thời, reset base position và bảo toàn độ rung hiện tại.
+        /// </summary>
+        public void SetPosition(Vector3 position)
+        {
+            _targetPosition = position;
+            ClampTargetPosition();
+            _currentBasePosition = _targetPosition;
+            transform.position = _currentBasePosition + _shakeOffset;
         }
 
         private void Reset()
@@ -101,7 +227,8 @@ namespace KingdomDefense.Cameras
 
             // Đảm bảo vị trí ban đầu nằm trong giới hạn cho phép
             ClampTargetPosition();
-            transform.position = _targetPosition;
+            _currentBasePosition = _targetPosition;
+            transform.position = _currentBasePosition;
         }
 
         private void LateUpdate()
@@ -111,20 +238,11 @@ namespace KingdomDefense.Cameras
             HandleZoom();
             ClampTargetPosition();
 
-            // Cập nhật rung chấn màn hình (Screen Shake)
-            if (_shakeDuration > 0f)
-            {
-                _shakeOffset = Random.insideUnitSphere * _shakeMagnitude;
-                _shakeDuration -= Time.deltaTime;
-                if (_shakeDuration <= 0f)
-                {
-                    _shakeOffset = Vector3.zero;
-                }
-            }
+            UpdateShake(Time.deltaTime);
 
-            // Nội suy mượt mà vị trí camera đến vị trí mục tiêu kèm độ rung giật
-            Vector3 basePos = Vector3.Lerp(transform.position - _shakeOffset, _targetPosition, Time.deltaTime * smoothSpeed);
-            transform.position = basePos + _shakeOffset;
+            // Nội suy mượt mà vị trí camera đến vị trí mục tiêu (hoàn toàn zero-drift)
+            _currentBasePosition = Vector3.Lerp(_currentBasePosition, _targetPosition, Time.deltaTime * smoothSpeed);
+            transform.position = _currentBasePosition + _shakeOffset;
         }
 
         /// <summary>

@@ -232,6 +232,10 @@ namespace KingdomDefense.Map
                 cam.transform.position = new Vector3(1.35f, 26f, -14.0f);
                 cam.transform.rotation = Quaternion.Euler(60f, 0f, 0f); // Top-down góc 60 độ bao quát thung lũng & thành trì
                 cam.fieldOfView = 60f;
+                if (cam.GetComponent<KingdomDefense.Cameras.CameraController>() == null)
+                {
+                    cam.gameObject.AddComponent<KingdomDefense.Cameras.CameraController>();
+                }
             }
 
             Light sun = Object.FindAnyObjectByType<Light>();
