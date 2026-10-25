@@ -1324,7 +1324,7 @@ namespace KingdomDefense.Map
             CreateIconButton(topRightPanel.transform, new Vector2(38, 0), iconPause, "", out Button pauseBtn, out Text pauseText, "Btn_Pause");
             if (pauseBtn != null) pauseBtn.onClick.AddListener(hud.TogglePause);
 
-            // 4. BOTTOM-DOCK (Building Toolbar: 4 nút Cung, Pháo, Phép, Tường Thành)
+            // 4. BOTTOM-DOCK (Building Toolbar: 5 nút Cung, Pháo, Phép, Băng, Tường Thành)
             GameObject bottomDock = new GameObject("BottomCenter_BuildDock");
             bottomDock.transform.SetParent(canvasObj.transform, false);
             RectTransform bdRect = bottomDock.AddComponent<RectTransform>();
@@ -1332,20 +1332,22 @@ namespace KingdomDefense.Map
             bdRect.anchorMax = new Vector2(0.5f, 0f);
             bdRect.pivot = new Vector2(0.5f, 0f);
             bdRect.anchoredPosition = new Vector2(0f, 20f);
-            bdRect.sizeDelta = new Vector2(840, 125);
+            bdRect.sizeDelta = new Vector2(920, 125);
 
             Image bdBg = bottomDock.AddComponent<Image>();
             if (iconBadgePanel != null) { bdBg.sprite = iconBadgePanel; bdBg.type = Image.Type.Sliced; }
             else bdBg.color = new Color(0.10f, 0.12f, 0.16f, 0.92f);
 
-            // Nút 1: Tháp Cung (100)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(-270, 0), "🏹 CUNG [1]", "100", out Button archerBtn, out Image archerHl, out Text archerCost);
-            // Nút 2: Tháp Pháo (125)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(-90, 0), "💣 PHÁO [2]", "125", out Button bombBtn, out Image bombHl, out Text bombCost);
-            // Nút 3: Tháp Phép (150)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(90, 0), "⚡ PHÉP [3]", "150", out Button mageBtn, out Image mageHl, out Text mageCost);
-            // Nút 4: Tường Thành / Rào Chắn (70)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(270, 0), "🛡️ TƯỜNG [4]", "70", out Button wallBtn, out Image wallHl, out Text wallCost);
+            // Nút 1: Tháp Cung [1] (100 Vàng)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(-340, 0), "🏹 CUNG [1]", "100", out Button archerBtn, out Image archerHl, out Text archerCost);
+            // Nút 2: Tháp Pháo [2] (125 Vàng)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(-170, 0), "💣 PHÁO [2]", "125", out Button bombBtn, out Image bombHl, out Text bombCost);
+            // Nút 3: Tháp Phép [3] (150 Vàng)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(0, 0), "⚡ PHÉP [3]", "150", out Button mageBtn, out Image mageHl, out Text mageCost);
+            // Nút 4: Tháp Băng [4] (175 Vàng)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(170, 0), "❄️ BĂNG [4]", "175", out Button frostBtn, out Image frostHl, out Text frostCost);
+            // Nút 5: Tường Thành [5] (70 Vàng)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(340, 0), "🛡️ TƯỜNG [5]", "70", out Button wallBtn, out Image wallHl, out Text wallCost);
 
             // Liên kết tham chiếu vào GameHUD
             SetPrivateField(hud, "livesText", livesText);
@@ -1363,16 +1365,19 @@ namespace KingdomDefense.Map
             SetPrivateField(hud, "archerBtn", archerBtn);
             SetPrivateField(hud, "bombBtn", bombBtn);
             SetPrivateField(hud, "mageBtn", mageBtn);
+            SetPrivateField(hud, "frostBtn", frostBtn);
             SetPrivateField(hud, "wallBtn", wallBtn);
 
             SetPrivateField(hud, "archerHighlight", archerHl);
             SetPrivateField(hud, "bombHighlight", bombHl);
             SetPrivateField(hud, "mageHighlight", mageHl);
+            SetPrivateField(hud, "frostHighlight", frostHl);
             SetPrivateField(hud, "wallHighlight", wallHl);
 
             SetPrivateField(hud, "archerCostText", archerCost);
             SetPrivateField(hud, "bombCostText", bombCost);
             SetPrivateField(hud, "mageCostText", mageCost);
+            SetPrivateField(hud, "frostCostText", frostCost);
             SetPrivateField(hud, "wallCostText", wallCost);
         }
 
@@ -1444,7 +1449,7 @@ namespace KingdomDefense.Map
             cardObj.transform.SetParent(parent, false);
             RectTransform cr = cardObj.AddComponent<RectTransform>();
             cr.anchoredPosition = pos;
-            cr.sizeDelta = new Vector2(170, 95);
+            cr.sizeDelta = new Vector2(155, 95);
 
             // Nền thẻ sẫm màu sang trọng
             Image bg = cardObj.AddComponent<Image>();
@@ -1486,7 +1491,7 @@ namespace KingdomDefense.Map
             titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (titleText.font == null) titleText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             titleText.text = towerName;
-            titleText.fontSize = 18;
+            titleText.fontSize = 16;
             titleText.fontStyle = FontStyle.Bold;
             titleText.color = new Color(1f, 0.96f, 0.85f); // Trắng ngà sắc nét
             titleText.alignment = TextAnchor.MiddleCenter;

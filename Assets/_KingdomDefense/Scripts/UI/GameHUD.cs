@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using KingdomDefense.Build;
 using KingdomDefense.Core;
+using KingdomDefense.Skills;
 
 namespace KingdomDefense.UI
 {
@@ -219,7 +220,7 @@ namespace KingdomDefense.UI
                 }
             }
 
-            // 2. CĂN CHỈNH BOTTOM-CENTER BUILD DOCK (Khung rộng 840x125 ôm trọn 4 thẻ nút 710px)
+            // 2. CĂN CHỈNH BOTTOM-CENTER BUILD DOCK (Khung rộng 920x125 ôm trọn các thẻ nút)
             Transform bdPanel = transform.Find("BottomCenter_BuildDock");
             if (bdPanel != null)
             {
@@ -230,14 +231,30 @@ namespace KingdomDefense.UI
                     bdRect.anchorMax = new Vector2(0.5f, 0f);
                     bdRect.pivot = new Vector2(0.5f, 0f);
                     bdRect.anchoredPosition = new Vector2(0f, 20f);
-                    bdRect.sizeDelta = new Vector2(840f, 125f);
+                    bdRect.sizeDelta = new Vector2(920f, 125f);
                 }
 
-                // Căn chỉnh đều 4 thẻ nút: -270, -90, 90, 270 (mỗi thẻ rộng 170px)
-                float[] cardXPositions = new float[] { -270f, -90f, 90f, 270f };
-                int cardIndex = 0;
+                int cardCount = 0;
+                for (int i = 0; i < bdPanel.childCount; i++)
+                {
+                    if (bdPanel.GetChild(i).name.StartsWith("Card_")) cardCount++;
+                }
 
-                for (int i = 0; i < bdPanel.childCount && cardIndex < 4; i++)
+                float[] cardXPositions;
+                float cardWidth;
+                if (cardCount >= 5)
+                {
+                    cardXPositions = new float[] { -340f, -170f, 0f, 170f, 340f };
+                    cardWidth = 155f;
+                }
+                else
+                {
+                    cardXPositions = new float[] { -270f, -90f, 90f, 270f };
+                    cardWidth = 170f;
+                }
+
+                int cardIndex = 0;
+                for (int i = 0; i < bdPanel.childCount && cardIndex < cardXPositions.Length; i++)
                 {
                     Transform card = bdPanel.GetChild(i);
                     if (card.name.StartsWith("Card_"))
@@ -249,7 +266,7 @@ namespace KingdomDefense.UI
                             cr.anchorMax = new Vector2(0.5f, 0.5f);
                             cr.pivot = new Vector2(0.5f, 0.5f);
                             cr.anchoredPosition = new Vector2(cardXPositions[cardIndex], 0f);
-                            cr.sizeDelta = new Vector2(170f, 95f);
+                            cr.sizeDelta = new Vector2(cardWidth, 95f);
                         }
                         cardIndex++;
                     }
@@ -358,35 +375,38 @@ namespace KingdomDefense.UI
                     if (btn == null) continue;
 
                     string cardName = card.name.ToLower();
+                    Transform hlTr = card.Find("Highlight") ?? card.Find("HighlightBorder");
+                    Transform costTr = card.Find("CostText") ?? card.Find("Cost");
+
                     if (cardName.Contains("cung") || cardName.Contains("archer"))
                     {
                         if (archerBtn == null) archerBtn = btn;
-                        if (archerHighlight == null) archerHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (archerCostText == null) archerCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (archerHighlight == null) archerHighlight = hlTr?.GetComponent<Image>();
+                        if (archerCostText == null) archerCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("pháo") || cardName.Contains("phao") || cardName.Contains("bomb") || cardName.Contains("cannon"))
                     {
                         if (bombBtn == null) bombBtn = btn;
-                        if (bombHighlight == null) bombHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (bombCostText == null) bombCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (bombHighlight == null) bombHighlight = hlTr?.GetComponent<Image>();
+                        if (bombCostText == null) bombCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("phép") || cardName.Contains("phep") || cardName.Contains("mage"))
                     {
                         if (mageBtn == null) mageBtn = btn;
-                        if (mageHighlight == null) mageHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (mageCostText == null) mageCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (mageHighlight == null) mageHighlight = hlTr?.GetComponent<Image>();
+                        if (mageCostText == null) mageCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("băng") || cardName.Contains("bang") || cardName.Contains("frost"))
                     {
                         if (frostBtn == null) frostBtn = btn;
-                        if (frostHighlight == null) frostHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (frostCostText == null) frostCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (frostHighlight == null) frostHighlight = hlTr?.GetComponent<Image>();
+                        if (frostCostText == null) frostCostText = costTr?.GetComponent<Text>();
                     }
                     else if (cardName.Contains("tường") || cardName.Contains("tuong") || cardName.Contains("wall"))
                     {
                         if (wallBtn == null) wallBtn = btn;
-                        if (wallHighlight == null) wallHighlight = card.Find("Highlight")?.GetComponent<Image>();
-                        if (wallCostText == null) wallCostText = card.Find("CostText")?.GetComponent<Text>();
+                        if (wallHighlight == null) wallHighlight = hlTr?.GetComponent<Image>();
+                        if (wallCostText == null) wallCostText = costTr?.GetComponent<Text>();
                     }
                 }
             }
@@ -674,25 +694,51 @@ namespace KingdomDefense.UI
             HandleControlHotkeys();
         }
 
+        /// <summary>
+        /// Xử lý hành vi phím [Esc] theo thứ tự ưu tiên:
+        /// 1. Hủy ngắm bắn Thiên Thạch (nếu đang ngắm).
+        /// 2. Hủy chọn tháp (nếu đang chọn tháp).
+        /// 3. Bật / Tắt Menu Tạm dừng (Pause Modal).
+        /// </summary>
+        public string HandleEscAction()
+        {
+            if (MeteorShowerSkill.Instance != null && MeteorShowerSkill.Instance.IsAiming)
+            {
+                MeteorShowerSkill.Instance.SetAiming(false);
+                return "CancelMeteorAiming";
+            }
+
+            if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+            {
+                BuildManager.Instance.SelectTowerToBuild(TowerType.None);
+                return "CancelTowerSelection";
+            }
+
+            TogglePause();
+            return _isPaused ? "OpenPauseMenu" : "ClosePauseMenu";
+        }
+
         private void HandleControlHotkeys()
         {
-            bool togglePause = false;
+            bool escPressed = false;
+            bool pPressed = false;
             bool toggleSpeed = false;
 
 #if ENABLE_INPUT_SYSTEM
             if (UnityEngine.InputSystem.Keyboard.current != null)
             {
-                togglePause = UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame ||
-                              UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame;
+                escPressed = UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame;
+                pPressed = UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame;
                 toggleSpeed = UnityEngine.InputSystem.Keyboard.current.tabKey.wasPressedThisFrame ||
                               UnityEngine.InputSystem.Keyboard.current.backquoteKey.wasPressedThisFrame;
             }
 #endif
-            if (!togglePause)
+            if (!escPressed && !pPressed)
             {
                 try
                 {
-                    togglePause = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
+                    escPressed = Input.GetKeyDown(KeyCode.Escape);
+                    pPressed = Input.GetKeyDown(KeyCode.P);
                 }
                 catch (System.InvalidOperationException) { }
             }
@@ -706,14 +752,12 @@ namespace KingdomDefense.UI
                 catch (System.InvalidOperationException) { }
             }
 
-            if (togglePause)
+            if (escPressed)
             {
-                // Nếu người chơi đang chọn tháp để cắm -> Esc sẽ hủy chọn tháp trước
-                if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
-                {
-                    BuildManager.Instance.SelectTowerToBuild(TowerType.None);
-                    return;
-                }
+                HandleEscAction();
+            }
+            else if (pPressed)
+            {
                 TogglePause();
             }
             else if (toggleSpeed)
@@ -947,9 +991,9 @@ namespace KingdomDefense.UI
         /// <summary>
         /// Cập nhật hiển thị Thanh năng lượng Mana (Top-Center):
         /// - Thanh slider pha lê xanh ngọc Cyan/Azure.
-        /// - Hiển thị chữ 'MANA 100 / 100 MP' với hiệu ứng phát sáng khi >= 60 MP (sẵn sàng chiêu cuối).
+        /// - Hiển thị chữ 'MANA 100 / 100 MP [Space]' với hiệu ứng phát sáng khi >= 60 MP (sẵn sàng chiêu cuối).
         /// </summary>
-        private void UpdateManaDisplay()
+        public void UpdateManaDisplay()
         {
             if (manaSlider != null)
             {
@@ -957,15 +1001,19 @@ namespace KingdomDefense.UI
             }
             if (manaText != null)
             {
-                manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP";
-
-                // Phát sáng xanh rực rỡ khi tích đủ >= 60 Mana
-                if (_currentMana >= 60f)
+                if (MeteorShowerSkill.Instance != null && MeteorShowerSkill.Instance.IsAiming)
                 {
+                    manaText.text = "☄️ ĐANG NGẮM [Space/Esc]";
+                    manaText.color = manaReadyColor;
+                }
+                else if (_currentMana >= 60f)
+                {
+                    manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP [Space]";
                     manaText.color = manaReadyColor;
                 }
                 else
                 {
+                    manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP";
                     manaText.color = Color.white;
                 }
             }
