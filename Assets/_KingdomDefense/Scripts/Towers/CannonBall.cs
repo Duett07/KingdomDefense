@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Core;
+using KingdomDefense.VFX;
 
 namespace KingdomDefense.Towers
 {
@@ -224,53 +225,16 @@ namespace KingdomDefense.Towers
         /// </summary>
         private void SpawnExplosionFX(Vector3 pos)
         {
-            GameObject fxContainer = new GameObject("Cannon_Explosion_FX");
-            fxContainer.transform.position = pos;
-
-            // a. Quả cầu lửa chớp sáng (Fireball Flash)
-            GameObject fireball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            fireball.transform.SetParent(fxContainer.transform);
-            fireball.transform.localPosition = Vector3.up * 0.2f;
-            fireball.transform.localScale = Vector3.one * 1.5f;
-            Destroy(fireball.GetComponent<Collider>());
-
-            Renderer rFire = fireball.GetComponent<Renderer>();
-            if (rFire != null)
+            if (VFXManager.Instance != null)
             {
-                Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
-                Material mat = new Material(s);
-                mat.color = new Color(1.0f, 0.65f, 0.15f, 0.95f);
-                rFire.sharedMaterial = mat;
+                VFXManager.Instance.SpawnCannonExplosion(pos, explosionRadius);
             }
 
-            // b. 6 Mảnh đất đá văng tung tóe (Debris Chunks)
-            for (int i = 0; i < 6; i++)
-            {
-                GameObject chunk = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                chunk.transform.SetParent(fxContainer.transform);
-                float angle = i * Mathf.PI * 2f / 6f;
-                Vector3 dir = new Vector3(Mathf.Cos(angle), Random.Range(0.4f, 0.8f), Mathf.Sin(angle));
-                chunk.transform.localPosition = dir * Random.Range(0.4f, 0.9f);
-                chunk.transform.localScale = Vector3.one * Random.Range(0.18f, 0.32f);
-                chunk.transform.rotation = Random.rotation;
-                Destroy(chunk.GetComponent<Collider>());
-
-                Renderer rChunk = chunk.GetComponent<Renderer>();
-                if (rChunk != null)
-                {
-                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
-                    Material mat = new Material(s);
-                    mat.color = new Color(0.28f, 0.24f, 0.18f); // Đất nâu sẫm
-                    rChunk.sharedMaterial = mat;
-                }
-            }
-
-            // c. Vết xém đen trên mặt đất (Scorch Mark)
+            // Vết xém đen trên mặt đất (Scorch Mark)
             GameObject scorch = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             scorch.name = "Scorch_Mark";
-            scorch.transform.SetParent(fxContainer.transform);
-            scorch.transform.localPosition = new Vector3(0f, 0.015f, 0f);
-            scorch.transform.localScale = new Vector3(2.2f, 0.005f, 2.2f);
+            scorch.transform.position = new Vector3(pos.x, 0.015f, pos.z);
+            scorch.transform.localScale = new Vector3(Mathf.Max(1.8f, explosionRadius * 0.85f), 0.005f, Mathf.Max(1.8f, explosionRadius * 0.85f));
             Destroy(scorch.GetComponent<Collider>());
 
             Renderer rScorch = scorch.GetComponent<Renderer>();
@@ -282,7 +246,7 @@ namespace KingdomDefense.Towers
                 rScorch.sharedMaterial = mat;
             }
 
-            Destroy(fxContainer, 0.45f);
+            Destroy(scorch, 3.5f);
         }
     }
 }

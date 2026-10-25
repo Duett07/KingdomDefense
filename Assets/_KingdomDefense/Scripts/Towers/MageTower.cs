@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using KingdomDefense.Enemy;
+using KingdomDefense.VFX;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -241,10 +242,15 @@ namespace KingdomDefense.Towers
                 StartCoroutine(LightningStrikeRoutine(startPos, target));
             }
 
-            // 3. Hiệu ứng viên ngọc trên đầu gậy bừng sáng
+            // 3. Hiệu ứng viên ngọc trên đầu gậy bừng sáng & giải phóng tia lửa điện
             if (_staffCrystal != null)
             {
                 StartCoroutine(PulseCrystalRoutine());
+            }
+
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.SpawnLightningSparks(firePoint != null ? firePoint.position : startPos);
             }
 
             // 4. Tạo hiệu ứng điện quang giải phóng tại mục tiêu (Target Discharge Spark)
@@ -334,47 +340,10 @@ namespace KingdomDefense.Towers
         /// </summary>
         private void SpawnTargetDischargeFX(Vector3 pos)
         {
-            GameObject fx = new GameObject("Arcane_Discharge_Spark");
-            fx.transform.position = pos;
-
-            // Vòng tròn hào quang ma thuật tỏa ra
-            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            ring.name = "Arcane_Shock_Ring";
-            ring.transform.SetParent(fx.transform, false);
-            ring.transform.localPosition = Vector3.zero;
-            ring.transform.localScale = new Vector3(0.85f, 0.01f, 0.85f);
-            Destroy(ring.GetComponent<Collider>());
-
-            Renderer rRing = ring.GetComponent<Renderer>();
-            if (rRing != null)
+            if (VFXManager.Instance != null)
             {
-                Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
-                Material mat = new Material(s);
-                mat.color = new Color(0.1f, 0.95f, 1.0f, 0.9f);
-                rRing.sharedMaterial = mat;
+                VFXManager.Instance.SpawnElectricImpact(pos);
             }
-
-            // 4 Tia lửa điện nhỏ bắn ra xung quanh
-            for (int i = 0; i < 4; i++)
-            {
-                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                spark.transform.SetParent(fx.transform, false);
-                float angle = i * Mathf.PI * 2f / 4f;
-                spark.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.35f, Random.Range(0.1f, 0.3f), Mathf.Sin(angle) * 0.35f);
-                spark.transform.localScale = Vector3.one * 0.15f;
-                Destroy(spark.GetComponent<Collider>());
-
-                Renderer rSpark = spark.GetComponent<Renderer>();
-                if (rSpark != null)
-                {
-                    Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
-                    Material mat = new Material(s);
-                    mat.color = Color.white; // Lõi trắng chớp sáng
-                    rSpark.sharedMaterial = mat;
-                }
-            }
-
-            Destroy(fx, 0.22f);
         }
 
         protected override void OnDrawGizmosSelected()
