@@ -40,6 +40,9 @@ namespace KingdomDefense.Enemy
         [SerializeField] private Texture2D knightTexture;
         [SerializeField] private Texture2D barbarianTexture;
 
+        [Header("--- CẤU HÌNH LÀN SÓNG (SCRIPTABLEOBJECT) ---")]
+        [SerializeField] private WaveConfig waveConfig;
+
         [Header("--- THIẾT LẬP ĐỢT TẤN CÔNG (WAVES) ---")]
         [SerializeField] private int totalWaves = 10;
         [SerializeField] private float timeBetweenWaves = 8f;
@@ -52,6 +55,8 @@ namespace KingdomDefense.Enemy
 
         public int CurrentWaveIndex => _currentWaveIndex;
         public float WaveCountdown => _waveCountdown;
+        public int TotalWaves => waveConfig != null ? waveConfig.TotalWaves : totalWaves;
+        public WaveConfig Config => waveConfig;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoInitialize()
@@ -72,17 +77,39 @@ namespace KingdomDefense.Enemy
             if (Instance == null) Instance = this;
             else if (Instance != this) Destroy(gameObject);
 
-            _waveCountdown = initialDelay;
             EnsureAssetsLoaded();
+
+            if (waveConfig == null)
+            {
+#if UNITY_EDITOR
+                waveConfig = AssetDatabase.LoadAssetAtPath<WaveConfig>("Assets/_KingdomDefense/Configs/WaveConfig_10Waves.asset");
+#endif
+                if (waveConfig == null)
+                {
+                    waveConfig = WaveConfig.CreateDefault10WavesConfig();
+                }
+            }
+
+            if (waveConfig != null)
+            {
+                totalWaves = waveConfig.TotalWaves;
+                var firstWave = waveConfig.GetWave(1);
+                _waveCountdown = firstWave != null ? firstWave.timeBeforeWave : initialDelay;
+            }
+            else
+            {
+                _waveCountdown = initialDelay;
+            }
         }
 
         private void Start()
         {
             EnsureAssetsLoaded();
 
+            int maxWaves = TotalWaves;
             if (GameHUD.Instance != null)
             {
-                GameHUD.Instance.SetWave(1, totalWaves);
+                GameHUD.Instance.SetWave(1, maxWaves);
             }
 
             Debug.Log($"[WaveSpawner] Đã sẵn sàng xuất quân! Đợt 1 sẽ tiến công sau {_waveCountdown:F1}s.");
@@ -90,12 +117,12 @@ namespace KingdomDefense.Enemy
 
         private void Update()
         {
-            if (_isSpawningWave || _currentWaveIndex >= totalWaves) return;
+            int maxWaves = TotalWaves;
+            if (_isSpawningWave || _currentWaveIndex >= maxWaves) return;
 
             if (_waveCountdown <= 0f)
             {
                 StartCoroutine(SpawnWaveRoutine());
-                _waveCountdown = timeBetweenWaves;
             }
             else
             {
@@ -159,18 +186,45 @@ namespace KingdomDefense.Enemy
             _isSpawningWave = true;
             _currentWaveIndex++;
 
+            int maxWaves = TotalWaves;
+
             if (GameHUD.Instance != null)
             {
-                GameHUD.Instance.SetWave(_currentWaveIndex, totalWaves);
+                GameHUD.Instance.SetWave(_currentWaveIndex, maxWaves);
             }
 
-            List<EnemyType> waveTroops = BuildWaveComposition(_currentWaveIndex);
-            Debug.Log($"[WaveSpawner] === BẮT ĐẦU WAVE {_currentWaveIndex}/{totalWaves} ({waveTroops.Count} Quái vật) ===");
+            WaveDefinition currentWaveDef = waveConfig != null ? waveConfig.GetWave(_currentWaveIndex) : null;
 
-            foreach (EnemyType type in waveTroops)
+            if (currentWaveDef != null)
             {
-                SpawnEnemy(type);
-                yield return new WaitForSeconds(timeBetweenSpawns);
+                List<SpawnItem> spawnSequence = currentWaveDef.GenerateSpawnSequence();
+                Debug.Log($"[WaveSpawner] === BẮT ĐẦU WAVE {_currentWaveIndex}/{maxWaves}: {currentWaveDef.waveTitle} ({spawnSequence.Count} Quái vật, Nhịp cơ sở: {currentWaveDef.spawnRate:F1}s) ===");
+                Debug.Log($"[WaveSpawner] Yêu cầu chiến thuật: {currentWaveDef.tacticsDescription}");
+
+                foreach (SpawnItem item in spawnSequence)
+                {
+                    SpawnEnemy(item.type);
+                    yield return new WaitForSeconds(item.delayAfterSpawn);
+                }
+
+                if (_currentWaveIndex < maxWaves)
+                {
+                    WaveDefinition nextWaveDef = waveConfig.GetWave(_currentWaveIndex + 1);
+                    _waveCountdown = nextWaveDef != null ? nextWaveDef.timeBeforeWave : timeBetweenWaves;
+                }
+            }
+            else
+            {
+                List<EnemyType> waveTroops = BuildWaveComposition(_currentWaveIndex);
+                Debug.Log($"[WaveSpawner] === BẮT ĐẦU WAVE {_currentWaveIndex}/{maxWaves} ({waveTroops.Count} Quái vật) ===");
+
+                foreach (EnemyType type in waveTroops)
+                {
+                    SpawnEnemy(type);
+                    yield return new WaitForSeconds(timeBetweenSpawns);
+                }
+
+                _waveCountdown = timeBetweenWaves;
             }
 
             _isSpawningWave = false;
