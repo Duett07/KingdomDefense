@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Enemy;
+using KingdomDefense.Core;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -282,7 +283,7 @@ namespace KingdomDefense.Towers
 
                 if (distSqr <= sqrRange)
                 {
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, DamageType.Magic);
                     hitAny = true;
                 }
             }

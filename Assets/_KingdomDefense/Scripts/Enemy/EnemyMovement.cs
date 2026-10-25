@@ -56,6 +56,18 @@ namespace KingdomDefense.Enemy
 
         private void Start()
         {
+            RestartPath();
+        }
+
+        /// <summary>
+        /// Khởi động lại lộ trình di chuyển từ Waypoint 0 (sử dụng khi tái sinh từ Object Pool).
+        /// </summary>
+        public void RestartPath()
+        {
+            _hasEnded = false;
+            _waypointIndex = 0;
+            ResetSpeed();
+
             // Kiểm tra và lấy danh sách Waypoints
             if (Waypoints.Waypoints.Points == null || Waypoints.Waypoints.Points.Length == 0)
             {

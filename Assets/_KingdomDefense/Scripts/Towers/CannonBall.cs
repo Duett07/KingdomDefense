@@ -200,7 +200,7 @@ namespace KingdomDefense.Towers
                     float ratio = Mathf.Clamp01(1f - (dist / explosionRadius) * 0.5f);
                     float actualDamage = damage * ratio;
 
-                    enemy.TakeDamage(actualDamage);
+                    enemy.TakeDamage(actualDamage, DamageType.AoEExplosion);
 
                     // Đẩy văng nhẹ (Knockback)
                     Vector3 knockDir = enemy.transform.position - explosionCenter;
