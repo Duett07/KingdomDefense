@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Towers;
+using KingdomDefense.Cameras;
 
 namespace KingdomDefense.Enemy
 {
@@ -63,8 +64,9 @@ namespace KingdomDefense.Enemy
                 yield return null;
             }
 
-            // 2. Dậm mạnh xuống đất
+            // 2. Dậm mạnh xuống đất & rung chấn màn hình
             transform.position = startPos;
+            CameraController.ShakeBossStomp();
 
             // 3. Quét và làm choáng toàn bộ tháp trong phạm vi 6.0m
             Tower[] allTowers = Object.FindObjectsByType<Tower>();

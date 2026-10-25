@@ -157,7 +157,7 @@ namespace KingdomDefense.Skills
             _hasImpacted = true;
 
             // 1. Rung chấn màn hình cực mạnh
-            CameraController.Shake(0.45f, 0.45f);
+            CameraController.ShakeMeteor();
 
             // 2. Gây 400 sát thương diện rộng lên toàn bộ quái vật
             ApplyAoEDamage();
