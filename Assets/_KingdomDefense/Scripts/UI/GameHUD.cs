@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using KingdomDefense.Build;
@@ -31,6 +33,15 @@ namespace KingdomDefense.UI
         [SerializeField] private Slider manaSlider;
         [SerializeField] private Text manaText;
 
+        [Header("--- TOP HUD ICONS & FX ---")]
+        [SerializeField] private Image livesIcon;
+        [SerializeField] private Image goldIcon;
+        [SerializeField] private Image waveIcon;
+        [SerializeField] private Image manaFillImage;
+        [SerializeField] private Color normalLivesColor = Color.white;
+        [SerializeField] private Color criticalLivesColor = new Color(0.98f, 0.28f, 0.28f, 1f); // Đỏ thẫm cảnh báo nguy cấp
+        [SerializeField] private Color manaReadyColor = new Color(0.35f, 0.88f, 1f, 1f); // Cyan phát sáng khi đủ 60 MP
+
         [Header("--- BOTTOM DOCK THAM CHIẾU ---")]
         [SerializeField] private Button archerBtn;
         [SerializeField] private Button bombBtn;
@@ -56,10 +67,18 @@ namespace KingdomDefense.UI
         private float _currentMana;
         private bool _isFastForward;
 
+        // Trạng thái hiệu ứng và Coroutines phản hồi thị giác
+        private Coroutine _heartbeatRoutine;
+        private Coroutine _goldPunchRoutine;
+        private Coroutine _livesPunchRoutine;
+        private Coroutine _wavePunchRoutine;
+        private bool _isCriticalLives = false;
+
         public int CurrentLives => _currentLives;
         public int CurrentGold => _currentGold;
         public int CurrentWave => _currentWave;
         public float CurrentMana => _currentMana;
+        public bool IsCriticalLives => _isCriticalLives;
 
         public event System.Action<int> OnLivesChanged;
         public event System.Action<int> OnGoldChanged;
@@ -75,8 +94,57 @@ namespace KingdomDefense.UI
             _currentMana = maxMana;
 
             EnsureEventSystem();
+            AutoBindTopHUDReferences();
             SetupButtonListeners();
             UpdateAllDisplays();
+        }
+
+        private void OnDisable()
+        {
+            StopAllTopHUDCoroutines();
+        }
+
+        private void StopAllTopHUDCoroutines()
+        {
+            if (_heartbeatRoutine != null) { StopCoroutine(_heartbeatRoutine); _heartbeatRoutine = null; }
+            if (_goldPunchRoutine != null) { StopCoroutine(_goldPunchRoutine); _goldPunchRoutine = null; }
+            if (_livesPunchRoutine != null) { StopCoroutine(_livesPunchRoutine); _livesPunchRoutine = null; }
+            if (_wavePunchRoutine != null) { StopCoroutine(_wavePunchRoutine); _wavePunchRoutine = null; }
+        }
+
+        /// <summary>
+        /// Tự động dò tìm các icon và thành phần Top HUD nếu chưa được gán thủ công trong Inspector.
+        /// </summary>
+        private void AutoBindTopHUDReferences()
+        {
+            if (livesIcon == null && livesText != null && livesText.transform.parent != null)
+            {
+                Transform iconTr = livesText.transform.parent.Find("Icon");
+                if (iconTr != null) livesIcon = iconTr.GetComponent<Image>();
+            }
+
+            if (goldIcon == null && goldText != null && goldText.transform.parent != null)
+            {
+                Transform iconTr = goldText.transform.parent.Find("Icon");
+                if (iconTr != null) goldIcon = iconTr.GetComponent<Image>();
+            }
+
+            if (waveIcon == null && waveText != null && waveText.transform.parent != null)
+            {
+                Transform iconTr = waveText.transform.parent.Find("Icon");
+                if (iconTr != null) waveIcon = iconTr.GetComponent<Image>();
+            }
+
+            if (manaSlider != null && manaFillImage == null && manaSlider.fillRect != null)
+            {
+                manaFillImage = manaSlider.fillRect.GetComponent<Image>();
+            }
+
+            // Tùy chỉnh màu sắc Xanh Lam Ngọc (Cyan/Azure Crystal) cho thanh Mana
+            if (manaFillImage != null)
+            {
+                manaFillImage.color = new Color(0.06f, 0.72f, 0.94f, 1f);
+            }
         }
 
         /// <summary>
@@ -174,11 +242,48 @@ namespace KingdomDefense.UI
 
         /// <summary>
         /// Cập nhật số sinh mệnh (Trừ khi quái lọt vào thành).
+        /// Kích hoạt cảnh báo nguy cấp khi Lives < 5 (Heartbeat pulse FX) và giật nảy khi mất máu.
         /// </summary>
         public void SetLives(int lives)
         {
+            int prevLives = _currentLives;
             _currentLives = Mathf.Max(0, lives);
             if (livesText != null) livesText.text = _currentLives.ToString();
+
+            // Hiệu ứng giật nảy khi bị quái vật trừ máu
+            if (_currentLives < prevLives)
+            {
+                if (_livesPunchRoutine != null) StopCoroutine(_livesPunchRoutine);
+                _livesPunchRoutine = StartCoroutine(PunchScaleRoutine(livesText.transform, 1.35f, 0.20f));
+                if (livesIcon != null) StartCoroutine(PunchScaleRoutine(livesIcon.transform, 1.30f, 0.20f));
+            }
+
+            // Xử lý Cảnh báo nguy cấp: Lives < 5
+            if (_currentLives < 5 && _currentLives > 0)
+            {
+                if (!_isCriticalLives)
+                {
+                    _isCriticalLives = true;
+                    if (livesText != null) livesText.color = criticalLivesColor;
+                    if (_heartbeatRoutine != null) StopCoroutine(_heartbeatRoutine);
+                    _heartbeatRoutine = StartCoroutine(HeartbeatRoutine());
+                }
+            }
+            else
+            {
+                if (_isCriticalLives)
+                {
+                    _isCriticalLives = false;
+                    if (livesText != null) livesText.color = normalLivesColor;
+                    if (_heartbeatRoutine != null)
+                    {
+                        StopCoroutine(_heartbeatRoutine);
+                        _heartbeatRoutine = null;
+                    }
+                    if (livesIcon != null) livesIcon.transform.localScale = Vector3.one;
+                }
+            }
+
             OnLivesChanged?.Invoke(_currentLives);
 
             if (_currentLives <= 0)
@@ -194,13 +299,25 @@ namespace KingdomDefense.UI
 
         /// <summary>
         /// Cập nhật số vàng (Tăng khi diệt quái, giảm khi xây/nâng cấp tháp).
+        /// Hiệu ứng punch scale nảy nhẹ khi thu được vàng từ quái vật.
         /// </summary>
         public void SetGold(int gold)
         {
+            int prevGold = _currentGold;
             _currentGold = Mathf.Max(0, gold);
-            if (goldText != null) goldText.text = _currentGold.ToString();
-            OnGoldChanged?.Invoke(_currentGold);
 
+            if (goldText != null)
+            {
+                goldText.text = _currentGold.ToString();
+                if (_currentGold > prevGold)
+                {
+                    if (_goldPunchRoutine != null) StopCoroutine(_goldPunchRoutine);
+                    _goldPunchRoutine = StartCoroutine(PunchScaleRoutine(goldText.transform, 1.25f, 0.18f));
+                    if (goldIcon != null) StartCoroutine(PunchScaleRoutine(goldIcon.transform, 1.20f, 0.18f));
+                }
+            }
+
+            OnGoldChanged?.Invoke(_currentGold);
             UpdateTowerButtonsAvailability();
         }
 
@@ -220,13 +337,25 @@ namespace KingdomDefense.UI
         }
 
         /// <summary>
-        /// Cập nhật hiển thị đợt quái.
+        /// Cập nhật hiển thị đợt quái chuẩn quy cách 2 chữ số (Ví dụ: Wave 04 / 10).
+        /// Hiệu ứng nổi bật khi bước sang làn sóng quái mới.
         /// </summary>
         public void SetWave(int wave, int total = -1)
         {
+            int prevWave = _currentWave;
             _currentWave = wave;
             if (total > 0) totalWaves = total;
-            if (waveText != null) waveText.text = $"WAVE: {_currentWave}/{totalWaves}";
+
+            if (waveText != null)
+            {
+                waveText.text = $"WAVE {_currentWave:D2} / {totalWaves:D2}";
+                if (_currentWave > prevWave)
+                {
+                    if (_wavePunchRoutine != null) StopCoroutine(_wavePunchRoutine);
+                    _wavePunchRoutine = StartCoroutine(PunchScaleRoutine(waveText.transform, 1.30f, 0.22f));
+                    if (waveIcon != null) StartCoroutine(PunchScaleRoutine(waveIcon.transform, 1.25f, 0.22f));
+                }
+            }
         }
 
         public float MaxMana => maxMana;
@@ -263,6 +392,11 @@ namespace KingdomDefense.UI
             return false;
         }
 
+        /// <summary>
+        /// Cập nhật hiển thị Thanh năng lượng Mana (Top-Center):
+        /// - Thanh slider pha lê xanh ngọc Cyan/Azure.
+        /// - Hiển thị chữ 'MANA 100 / 100 MP' với hiệu ứng phát sáng khi >= 60 MP (sẵn sàng chiêu cuối).
+        /// </summary>
         private void UpdateManaDisplay()
         {
             if (manaSlider != null)
@@ -271,8 +405,89 @@ namespace KingdomDefense.UI
             }
             if (manaText != null)
             {
-                manaText.text = $"MANA: {Mathf.FloorToInt(_currentMana)}/{Mathf.FloorToInt(maxMana)}";
+                manaText.text = $"MANA {Mathf.FloorToInt(_currentMana)} / {Mathf.FloorToInt(maxMana)} MP";
+
+                // Phát sáng xanh rực rỡ khi tích đủ >= 60 Mana
+                if (_currentMana >= 60f)
+                {
+                    manaText.color = manaReadyColor;
+                }
+                else
+                {
+                    manaText.color = Color.white;
+                }
             }
+        }
+
+        /// <summary>
+        /// Hiệu ứng bung nở nảy nhẹ (Punch Scale Tween) cho chữ số và icon.
+        /// </summary>
+        private IEnumerator PunchScaleRoutine(Transform target, float punchMultiplier, float duration)
+        {
+            if (target == null) yield break;
+            Vector3 originalScale = Vector3.one;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scaleFactor = 1f + Mathf.Sin(t * Mathf.PI) * (punchMultiplier - 1f);
+                target.localScale = originalScale * scaleFactor;
+                yield return null;
+            }
+
+            target.localScale = originalScale;
+        }
+
+        /// <summary>
+        /// Hiệu ứng nhịp tim đập dồn dập (Heartbeat Pulse) khi thành trì còn dưới 5 Máu.
+        /// </summary>
+        private IEnumerator HeartbeatRoutine()
+        {
+            Vector3 originalScale = Vector3.one;
+            Transform iconTr = livesIcon != null ? livesIcon.transform : (livesText != null ? livesText.transform : null);
+            if (iconTr == null) yield break;
+
+            while (_isCriticalLives && _currentLives > 0)
+            {
+                // Nhịp 1 (Mạnh)
+                float t = 0f;
+                while (t < 0.12f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    iconTr.localScale = originalScale * Mathf.Lerp(1.0f, 1.28f, t / 0.12f);
+                    yield return null;
+                }
+                t = 0f;
+                while (t < 0.10f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    iconTr.localScale = originalScale * Mathf.Lerp(1.28f, 1.05f, t / 0.10f);
+                    yield return null;
+                }
+
+                // Nhịp 2 (Nhẹ)
+                t = 0f;
+                while (t < 0.10f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    iconTr.localScale = originalScale * Mathf.Lerp(1.05f, 1.18f, t / 0.10f);
+                    yield return null;
+                }
+                t = 0f;
+                while (t < 0.14f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    iconTr.localScale = originalScale * Mathf.Lerp(1.18f, 1.0f, t / 0.14f);
+                    yield return null;
+                }
+
+                // Khoảng nghỉ giữa 2 nhịp tim
+                yield return new WaitForSecondsRealtime(0.40f);
+            }
+
+            if (iconTr != null) iconTr.localScale = originalScale;
         }
 
         /// <summary>
@@ -346,9 +561,13 @@ namespace KingdomDefense.UI
 
         private void UpdateAllDisplays()
         {
-            if (livesText != null) livesText.text = _currentLives.ToString();
+            if (livesText != null)
+            {
+                livesText.text = _currentLives.ToString();
+                livesText.color = (_currentLives < 5 && _currentLives > 0) ? criticalLivesColor : normalLivesColor;
+            }
             if (goldText != null) goldText.text = _currentGold.ToString();
-            if (waveText != null) waveText.text = $"WAVE: {_currentWave}/{totalWaves}";
+            if (waveText != null) waveText.text = $"WAVE {_currentWave:D2} / {totalWaves:D2}";
             if (speedText != null) speedText.text = _isFastForward ? "2X" : "1X";
 
             if (archerCostText != null) archerCostText.text = "100";
