@@ -1,0 +1,147 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f0b460036edf8f6bad7ec745592f59f, type: 3}
+  m_Name: WaveConfig_10Waves
+  m_EditorClassIdentifier: Assembly-CSharp::KingdomDefense.Enemy.WaveConfig
+  campaignTitle: "Chi\u1EBFn D\u1ECBch 10 L\xE0n S\xF3ng Chu\u1EA9n (B\u1EA3ng 2.3)"
+  campaignDescription: "C\u1EA5u h\xECnh 10 \u0111\u1EE3t qu\xE1i t\u1EF1 \u0111\u1ED9ng t\u1EA1o chu\u1EA9n thi\u1EBFt k\u1EBF: Goblin, Orc, Stone Golem, Dark Bat, Boss Orcus."
+  waves:
+  - waveNumber: 1
+    waveTitle: "Wave 1: Th\u1EED Th\xE1ch Ti\xEAn Phong"
+    tacticsDescription: "D\u1EC5. L\xE0m quen v\u1EDBi thao t\xE1c x\xE2y Th\xE1p Cung t\xEAn."
+    timeBeforeWave: 5
+    spawnRate: 1.5
+    spawnMode: 0
+    groups:
+    - enemyType: 0
+      count: 10
+      spawnIntervalOverride: 0
+  - waveNumber: 2
+    waveTitle: "Wave 2: Thi\u1EBFt Binh Ti\u1EBFn B\u01B0\u1EDBc"
+    tacticsDescription: "B\u1EAFt \u0111\u1EA7u xu\u1EA5t hi\u1EC7n l\xEDnh gi\xE1p nh\u1EB9, c\u1EA7n n\xE2ng c\u1EA5p th\xE1p."
+    timeBeforeWave: 8
+    spawnRate: 1.2
+    spawnMode: 1
+    groups:
+    - enemyType: 0
+      count: 12
+      spawnIntervalOverride: 0
+    - enemyType: 1
+      count: 4
+      spawnIntervalOverride: 0
+  - waveNumber: 3
+    waveTitle: "Wave 3: \u0110\u1ED9t K\xEDch B\u1EA7y \u0110\xF4ng"
+    tacticsDescription: "C\u1EA7n x\xE2y Th\xE1p \u0110\u1EA1i B\xE1c \u0111\u1EC3 gi\u1EA3i ph\xF3ng s\xE1t th\u01B0\u01A1ng di\u1EC7n r\u1ED9ng."
+    timeBeforeWave: 8
+    spawnRate: 1
+    spawnMode: 0
+    groups:
+    - enemyType: 1
+      count: 15
+      spawnIntervalOverride: 0
+  - waveNumber: 4
+    waveTitle: "Wave 4: B\xF3ng \u0110\xEAm Kh\xF4ng Ph\u1EADn (Qu\xE1i Bay)"
+    tacticsDescription: "Qu\xE1i bay l\xE1ch qua \u0111\u01B0\u1EDDng m\xF2n, b\u1EAFt bu\u1ED9c c\xF3 Th\xE1p Cung \u0111\xF3n \u0111\u1EA7u."
+    timeBeforeWave: 8
+    spawnRate: 0.8
+    spawnMode: 0
+    groups:
+    - enemyType: 3
+      count: 12
+      spawnIntervalOverride: 0
+  - waveNumber: 5
+    waveTitle: "Wave 5: H\u1ED7n H\u1EE3p Binh Ch\u1EE7ng"
+    tacticsDescription: "Nh\u1ECBp \u0111\u1ED9 d\u1ED3n d\u1EADp, th\u1EED th\xE1ch kh\u1EA3 n\u0103ng ki\u1EC3m so\xE1t h\u1ECFa l\u1EF1c."
+    timeBeforeWave: 8
+    spawnRate: 0.7
+    spawnMode: 1
+    groups:
+    - enemyType: 0
+      count: 15
+      spawnIntervalOverride: 0
+    - enemyType: 1
+      count: 8
+      spawnIntervalOverride: 0
+    - enemyType: 3
+      count: 6
+      spawnIntervalOverride: 0
+  - waveNumber: 6
+    waveTitle: "Wave 6: C\u1EF1 Nham Tr\u1EA7m M\u1EB7c"
+    tacticsDescription: "Golem kh\xE1ng v\u1EADt l\xFD cao, bu\u1ED9c ph\u1EA3i x\xE2y Th\xE1p Ph\xE1p S\u01B0."
+    timeBeforeWave: 8
+    spawnRate: 1.8
+    spawnMode: 1
+    groups:
+    - enemyType: 2
+      count: 3
+      spawnIntervalOverride: 0
+    - enemyType: 1
+      count: 10
+      spawnIntervalOverride: 0
+  - waveNumber: 7
+    waveTitle: "Wave 7: B\xE3o D\u01A1i Qu\u1EF7 (Air Swarm)"
+    tacticsDescription: "\xC1p l\u1EF1c kh\xF4ng ph\u1EADn c\u1EF1c l\u1EDBn, c\u1EA7n Th\xE1p B\u0103ng h\u1ED7 tr\u1EE3."
+    timeBeforeWave: 8
+    spawnRate: 0.5
+    spawnMode: 0
+    groups:
+    - enemyType: 3
+      count: 25
+      spawnIntervalOverride: 0
+  - waveNumber: 8
+    waveTitle: "Wave 8: Bi\u1EC3n Qu\xE1i V\u1EADt (Massive Horde)"
+    tacticsDescription: "Qu\xE1i tr\xE0n ng\u1EADp b\u1EA3n \u0111\u1ED3, c\u1EA7n ph\u1ED1i h\u1EE3p Th\xE1p B\u0103ng + \u0110\u1EA1i B\xE1c."
+    timeBeforeWave: 8
+    spawnRate: 0.4
+    spawnMode: 1
+    groups:
+    - enemyType: 0
+      count: 30
+      spawnIntervalOverride: 0
+    - enemyType: 1
+      count: 15
+      spawnIntervalOverride: 0
+    - enemyType: 2
+      count: 5
+      spawnIntervalOverride: 0
+  - waveNumber: 9
+    waveTitle: "Wave 9: \u0110\u1ED9i C\u1EADn V\u1EC7 Ho\xE0ng Gia \u0110en"
+    tacticsDescription: "C\u1EF1c k\u1EF3 tr\xE2u b\xF2, ng\u01B0\u1EDDi ch\u01A1i ph\u1EA3i k\xEDch ho\u1EA1t M\u01B0a Thi\xEAn Th\u1EA1ch."
+    timeBeforeWave: 8
+    spawnRate: 1
+    spawnMode: 1
+    groups:
+    - enemyType: 2
+      count: 8
+      spawnIntervalOverride: 0
+    - enemyType: 1
+      count: 20
+      spawnIntervalOverride: 0
+  - waveNumber: 10
+    waveTitle: 'Wave 10: BOSS WAVE - Orcus the Destroyer'
+    tacticsDescription: "Tr\xF9m cu\u1ED1i c\xF3 3800 HP v\xE0 skill cho\xE1ng th\xE1p. \u0110\xF2i h\u1ECFi t\u1ED5ng l\u1EF1c ph\xF2ng th\u1EE7."
+    timeBeforeWave: 10
+    spawnRate: 1.2
+    spawnMode: 0
+    groups:
+    - enemyType: 1
+      count: 15
+      spawnIntervalOverride: 0
+    - enemyType: 2
+      count: 6
+      spawnIntervalOverride: 0
+    - enemyType: 3
+      count: 10
+      spawnIntervalOverride: 0
+    - enemyType: 4
+      count: 1
+      spawnIntervalOverride: 3
