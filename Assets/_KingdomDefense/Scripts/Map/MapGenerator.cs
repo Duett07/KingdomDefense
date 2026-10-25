@@ -74,6 +74,8 @@ namespace KingdomDefense.Map
         [SerializeField] private Sprite iconSkull;
         [SerializeField] private Sprite iconFastForward;
         [SerializeField] private Sprite iconSettings;
+        [SerializeField] private Sprite iconPause;
+        [SerializeField] private Sprite iconResume;
         [SerializeField] private Sprite iconBadgePanel;
 
         [Header("--- CONTAINERS ---")]
@@ -253,6 +255,8 @@ namespace KingdomDefense.Map
             if (iconSkull == null) iconSkull = AssetDatabase.LoadAssetAtPath<Sprite>(p + "icon_skull.png");
             if (iconFastForward == null) iconFastForward = AssetDatabase.LoadAssetAtPath<Sprite>(p + "btn_fast_forward.png");
             if (iconSettings == null) iconSettings = AssetDatabase.LoadAssetAtPath<Sprite>(p + "btn_settings.png");
+            if (iconPause == null) iconPause = AssetDatabase.LoadAssetAtPath<Sprite>(p + "btn_pause.png");
+            if (iconResume == null) iconResume = AssetDatabase.LoadAssetAtPath<Sprite>(p + "btn_resume.png");
             if (iconBadgePanel == null) iconBadgePanel = AssetDatabase.LoadAssetAtPath<Sprite>(p + "ui_badge_panel.png");
 #endif
         }
@@ -1304,7 +1308,7 @@ namespace KingdomDefense.Map
             // 2. TOP-CENTER PANEL (Mana Energy Slider)
             CreateManaBar(canvasObj.transform, out Slider manaSlider, out Text manaText);
 
-            // 3. TOP-RIGHT PANEL (Fast Forward, Settings)
+            // 3. TOP-RIGHT PANEL (Fast Forward x1/x2, Pause)
             GameObject topRightPanel = new GameObject("TopRight_ControlPanel");
             topRightPanel.transform.SetParent(canvasObj.transform, false);
             RectTransform trRect = topRightPanel.AddComponent<RectTransform>();
@@ -1312,13 +1316,13 @@ namespace KingdomDefense.Map
             trRect.anchorMax = new Vector2(1, 1);
             trRect.pivot = new Vector2(1, 1);
             trRect.anchoredPosition = new Vector2(-25, -25);
-            trRect.sizeDelta = new Vector2(200, 80);
+            trRect.sizeDelta = new Vector2(165, 75);
 
-            CreateIconButton(topRightPanel.transform, new Vector2(-110, -40), iconFastForward, "1X", out Button speedBtn, out Text speedText);
+            CreateIconButton(topRightPanel.transform, new Vector2(-38, 0), iconFastForward, "1X", out Button speedBtn, out Text speedText, "Btn_Speed");
             if (speedBtn != null) speedBtn.onClick.AddListener(hud.ToggleFastForward);
 
-            CreateIconButton(topRightPanel.transform, new Vector2(-40, -40), iconSettings, "", out Button settingsBtn, out _);
-            if (settingsBtn != null) settingsBtn.onClick.AddListener(hud.TogglePause);
+            CreateIconButton(topRightPanel.transform, new Vector2(38, 0), iconPause, "", out Button pauseBtn, out Text pauseText, "Btn_Pause");
+            if (pauseBtn != null) pauseBtn.onClick.AddListener(hud.TogglePause);
 
             // 4. BOTTOM-DOCK (Building Toolbar: 4 nút Cung, Pháo, Phép, Tường Thành)
             GameObject bottomDock = new GameObject("BottomCenter_BuildDock");
@@ -1347,7 +1351,12 @@ namespace KingdomDefense.Map
             SetPrivateField(hud, "livesText", livesText);
             SetPrivateField(hud, "goldText", goldText);
             SetPrivateField(hud, "waveText", waveText);
+            SetPrivateField(hud, "speedBtn", speedBtn);
             SetPrivateField(hud, "speedText", speedText);
+            SetPrivateField(hud, "pauseBtn", pauseBtn);
+            SetPrivateField(hud, "pauseText", pauseText);
+            SetPrivateField(hud, "iconPause", iconPause);
+            SetPrivateField(hud, "iconResume", iconResume);
             SetPrivateField(hud, "manaSlider", manaSlider);
             SetPrivateField(hud, "manaText", manaText);
 
@@ -1559,32 +1568,42 @@ namespace KingdomDefense.Map
             outline.effectDistance = new Vector2(2, -2);
         }
 
-        private void CreateIconButton(Transform parent, Vector2 pos, Sprite sprite, string label, out Button outButton, out Text outText)
+        private void CreateIconButton(Transform parent, Vector2 pos, Sprite sprite, string label, out Button outButton, out Text outText, string objName = "Btn_Action")
         {
-            GameObject btnObj = new GameObject("Btn_Action");
+            GameObject btnObj = new GameObject(objName);
             btnObj.transform.SetParent(parent, false);
             RectTransform r = btnObj.AddComponent<RectTransform>();
+            r.anchorMin = new Vector2(0.5f, 0.5f);
+            r.anchorMax = new Vector2(0.5f, 0.5f);
+            r.pivot = new Vector2(0.5f, 0.5f);
             r.anchoredPosition = pos;
-            r.sizeDelta = new Vector2(64, 64);
+            r.sizeDelta = new Vector2(62, 52);
 
             Image img = btnObj.AddComponent<Image>();
             if (sprite != null) img.sprite = sprite;
-            else img.color = new Color(0.2f, 0.22f, 0.28f);
+            else img.color = new Color(0.12f, 0.15f, 0.20f, 0.92f);
 
             outButton = btnObj.AddComponent<Button>();
+
+            ColorBlock cb = outButton.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(1.2f, 1.2f, 1.3f, 1f);
+            cb.pressedColor = new Color(0.8f, 0.8f, 0.85f, 1f);
+            outButton.colors = cb;
 
             if (!string.IsNullOrEmpty(label))
             {
                 GameObject labelObj = new GameObject("Label");
                 labelObj.transform.SetParent(btnObj.transform, false);
                 RectTransform lr = labelObj.AddComponent<RectTransform>();
-                lr.anchoredPosition = new Vector2(0, -2);
-                lr.sizeDelta = new Vector2(60, 30);
+                lr.anchorMin = Vector2.zero;
+                lr.anchorMax = Vector2.one;
+                lr.sizeDelta = Vector2.zero;
                 outText = labelObj.AddComponent<Text>();
                 outText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 if (outText.font == null) outText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 outText.text = label;
-                outText.fontSize = 18;
+                outText.fontSize = 20;
                 outText.fontStyle = FontStyle.Bold;
                 outText.color = Color.white;
                 outText.alignment = TextAnchor.MiddleCenter;

@@ -25,6 +25,7 @@ namespace KingdomDefense.Tests
         [TearDown]
         public void TearDown()
         {
+            Time.timeScale = 1.0f;
             if (_hudObj != null)
             {
                 Object.DestroyImmediate(_hudObj);
@@ -159,6 +160,110 @@ namespace KingdomDefense.Tests
             Assert.IsNotNull(node.CurrentTurret.GetComponent<KingdomDefense.Towers.ArcherTower>(), "Tháp xây phải có component ArcherTower, không bị biến thành Cylinder rỗng.");
 
             Object.DestroyImmediate(nodeObj);
+        }
+
+        [Test]
+        public void TopHUD_FastForward_TogglesTimeScaleBetweenOneAndTwo()
+        {
+            Assert.IsFalse(_hud.IsFastForward, "Mặc định không ở chế độ tăng tốc.");
+            Assert.AreEqual(1.0f, Time.timeScale, "Time.timeScale mặc định là 1.0.");
+
+            _hud.ToggleFastForward();
+            Assert.IsTrue(_hud.IsFastForward, "Kích hoạt Fast Forward thành công.");
+            Assert.AreEqual(2.0f, Time.timeScale, "Time.timeScale phải là 2.0.");
+
+            _hud.ToggleFastForward();
+            Assert.IsFalse(_hud.IsFastForward, "Tắt Fast Forward thành công.");
+            Assert.AreEqual(1.0f, Time.timeScale, "Time.timeScale phải quay lại 1.0.");
+        }
+
+        [Test]
+        public void TopHUD_Pause_TogglesTimeScaleAndPauseOverlay()
+        {
+            Assert.IsFalse(_hud.IsPaused, "Mặc định game không ở trạng thái Pause.");
+
+            _hud.TogglePause();
+            Assert.IsTrue(_hud.IsPaused, "Kích hoạt Pause thành công.");
+            Assert.AreEqual(0.0f, Time.timeScale, "Khi Pause thì Time.timeScale phải bằng 0.");
+
+            _hud.TogglePause();
+            Assert.IsFalse(_hud.IsPaused, "Hủy Pause thành công.");
+            Assert.AreEqual(1.0f, Time.timeScale, "Khi tiếp tục game thì Time.timeScale phải phục hồi về 1.0.");
+        }
+
+        [Test]
+        public void TopHUD_Pause_ResumeRestoresFastForwardSpeed()
+        {
+            // Đang chơi ở tốc độ 2X
+            _hud.ToggleFastForward();
+            Assert.AreEqual(2.0f, Time.timeScale);
+
+            // Bấm Pause -> timeScale = 0
+            _hud.TogglePause();
+            Assert.IsTrue(_hud.IsPaused);
+            Assert.AreEqual(0.0f, Time.timeScale);
+
+            // Trong lúc Pause, người chơi bấm chuyển đổi tốc độ về 1X
+            _hud.ToggleFastForward();
+            Assert.IsFalse(_hud.IsFastForward);
+            Assert.AreEqual(0.0f, Time.timeScale, "Trong lúc Pause, timeScale vẫn phải là 0.");
+
+            // Hủy Pause -> Phục hồi về 1X
+            _hud.TogglePause();
+            Assert.IsFalse(_hud.IsPaused);
+            Assert.AreEqual(1.0f, Time.timeScale, "Khi tiếp tục, timeScale phải áp dụng theo trạng thái 1X vừa chọn.");
+        }
+
+        [Test]
+        public void TopHUD_PauseVisuals_SwitchesSpritesAndFallbackTextCorrectly()
+        {
+            // Kiểm tra fallback khi chưa có sprite (dùng text "||" khi chơi và "▶" khi pause)
+            GameObject pauseBtnObj = new GameObject("Btn_Pause");
+            pauseBtnObj.transform.SetParent(_hudObj.transform);
+            UnityEngine.UI.Image btnImg = pauseBtnObj.AddComponent<UnityEngine.UI.Image>();
+            UnityEngine.UI.Button btn = pauseBtnObj.AddComponent<UnityEngine.UI.Button>();
+
+            GameObject textObj = new GameObject("Label");
+            textObj.transform.SetParent(pauseBtnObj.transform);
+            UnityEngine.UI.Text text = textObj.AddComponent<UnityEngine.UI.Text>();
+
+            var fieldPauseBtn = typeof(GameHUD).GetField("pauseBtn", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            fieldPauseBtn?.SetValue(_hud, btn);
+            var fieldPauseText = typeof(GameHUD).GetField("pauseText", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            fieldPauseText?.SetValue(_hud, text);
+
+            _hud.UpdatePauseVisuals();
+            Assert.AreEqual("||", text.text, "Khi đang chơi (Resume) và không có sprite, nút phải hiển thị icon 2 thanh đứng '||'.");
+
+            _hud.TogglePause();
+            Assert.AreEqual("▶", text.text, "Khi tạm dừng (Pause), nút phải hiển thị biểu tượng tam giác '▶'.");
+
+            _hud.TogglePause();
+            Assert.AreEqual("||", text.text, "Khi tiếp tục lại (Resume), nút phải hiển thị lại biểu tượng 2 thanh đứng '||'.");
+
+            // Kiểm tra khi có sprite iconPause và iconResume
+            Texture2D tex = new Texture2D(16, 16);
+            Sprite dummyPause = Sprite.Create(tex, new Rect(0, 0, 16, 16), Vector2.zero);
+            Sprite dummyResume = Sprite.Create(tex, new Rect(0, 0, 16, 16), Vector2.zero);
+
+            var fieldIconPause = typeof(GameHUD).GetField("iconPause", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            fieldIconPause?.SetValue(_hud, dummyPause);
+            var fieldIconResume = typeof(GameHUD).GetField("iconResume", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            fieldIconResume?.SetValue(_hud, dummyResume);
+
+            _hud.UpdatePauseVisuals();
+            Assert.AreEqual(dummyPause, btnImg.sprite, "Khi đang chơi, sprite trên nút phải là iconPause.");
+            Assert.AreEqual("", text.text, "Khi đã có sprite, text phải được để trống.");
+
+            _hud.TogglePause();
+            Assert.AreEqual(dummyResume, btnImg.sprite, "Khi tạm dừng, sprite trên nút phải là iconResume.");
+
+            _hud.TogglePause();
+            Assert.AreEqual(dummyPause, btnImg.sprite, "Khi tiếp tục lại, sprite trên nút phải quay về iconPause.");
+
+            Object.DestroyImmediate(tex);
+            Object.DestroyImmediate(dummyPause);
+            Object.DestroyImmediate(dummyResume);
         }
     }
 }
