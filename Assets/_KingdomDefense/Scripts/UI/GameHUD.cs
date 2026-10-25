@@ -224,8 +224,28 @@ namespace KingdomDefense.UI
             if (waveText != null) waveText.text = $"WAVE: {_currentWave}/{totalWaves}";
         }
 
+        public float MaxMana => maxMana;
+        public float ManaRegenPerSecond => manaRegenPerSecond;
+
         /// <summary>
-        /// Trừ Mana khi kích hoạt kỹ năng Mưa Thiên Thạch.
+        /// Nạp thêm Mana cho người chơi (ví dụ thưởng diệt quái tinh anh hoặc ngọc hồi năng lượng).
+        /// </summary>
+        public void AddMana(float amount)
+        {
+            _currentMana = Mathf.Clamp(_currentMana + amount, 0f, maxMana);
+            UpdateManaDisplay();
+        }
+
+        /// <summary>
+        /// Kiểm tra xem người chơi có đủ lượng Mana yêu cầu hay không.
+        /// </summary>
+        public bool HasEnoughMana(float amount)
+        {
+            return _currentMana >= amount;
+        }
+
+        /// <summary>
+        /// Trừ Mana khi kích hoạt kỹ năng Mưa Thiên Thạch (Yêu cầu 60 MP).
         /// </summary>
         public bool ConsumeMana(float amount)
         {
