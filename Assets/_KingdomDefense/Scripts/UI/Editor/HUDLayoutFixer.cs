@@ -39,11 +39,22 @@ namespace KingdomDefense.UI.EditorTools
             if (hud != null)
             {
                 Undo.RecordObject(hud.gameObject, "Align HUD Layout");
+
+                Sprite pauseSp = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_KingdomDefense/Sprites/UI/btn_pause.png");
+                Sprite resumeSp = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_KingdomDefense/Sprites/UI/btn_resume.png");
+                var fPause = typeof(GameHUD).GetField("iconPause", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (fPause != null && pauseSp != null) fPause.SetValue(hud, pauseSp);
+                var fResume = typeof(GameHUD).GetField("iconResume", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (fResume != null && resumeSp != null) fResume.SetValue(hud, resumeSp);
+
+                hud.EnsurePauseOverlay();
+                hud.AutoBindHUDReferences();
                 hud.AlignAndEnforceHUDLayout();
+                hud.UpdatePauseVisuals();
                 EditorUtility.SetDirty(hud.gameObject);
                 EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
                 EditorSceneManager.SaveScene(hud.gameObject.scene);
-                Debug.Log("[HUDLayoutFixer] ✅ Đã căn chỉnh pixel-perfect Top HUD & Bottom Dock và lưu Scene thành công!");
+                Debug.Log("[HUDLayoutFixer] ✅ Đã căn chỉnh pixel-perfect Top HUD, Control Panel, icon Pause/Resume và lưu Scene thành công!");
             }
             else
             {

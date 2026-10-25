@@ -61,11 +61,20 @@ namespace KingdomDefense.UI
         [SerializeField] private Text frostCostText;
         [SerializeField] private Text wallCostText;
 
+        [Header("--- NÚT ĐIỀU KHIỂN & TẠM DỪNG (PAUSE / SPEED) ---")]
+        [SerializeField] private Button speedBtn;
+        [SerializeField] private Button pauseBtn;
+        [SerializeField] private Text pauseText;
+        [SerializeField] private GameObject pauseOverlay;
+        [SerializeField] private Sprite iconPause;
+        [SerializeField] private Sprite iconResume;
+
         private int _currentLives;
         private int _currentGold;
         private int _currentWave = 1;
         private float _currentMana;
         private bool _isFastForward;
+        private bool _isPaused;
 
         // Trạng thái hiệu ứng và Coroutines phản hồi thị giác
         private Coroutine _heartbeatRoutine;
@@ -79,9 +88,13 @@ namespace KingdomDefense.UI
         public int CurrentWave => _currentWave;
         public float CurrentMana => _currentMana;
         public bool IsCriticalLives => _isCriticalLives;
+        public bool IsPaused => _isPaused;
+        public bool IsFastForward => _isFastForward;
 
         public event System.Action<int> OnLivesChanged;
         public event System.Action<int> OnGoldChanged;
+        public event System.Action<bool> OnPauseToggled;
+        public event System.Action<bool> OnFastForwardToggled;
 
         private void Awake()
         {
@@ -94,6 +107,7 @@ namespace KingdomDefense.UI
             _currentMana = maxMana;
 
             EnsureEventSystem();
+            EnsurePauseOverlay();
             AutoBindHUDReferences();
             AlignAndEnforceHUDLayout();
             SetupButtonListeners();
@@ -103,12 +117,14 @@ namespace KingdomDefense.UI
         private void Start()
         {
             EnsureEventSystem();
+            EnsurePauseOverlay();
             AlignAndEnforceHUDLayout();
             UpdateAllDisplays();
         }
 
         private void OnDisable()
         {
+            Time.timeScale = 1.0f;
             StopAllTopHUDCoroutines();
         }
 
@@ -253,12 +269,53 @@ namespace KingdomDefense.UI
                     mr.sizeDelta = new Vector2(380f, 48f);
                 }
             }
+
+            // 4. CĂN CHỈNH TOP-RIGHT CONTROL PANEL (Speed x1/x2, Pause)
+            Transform trPanel = transform.Find("TopRight_ControlPanel");
+            if (trPanel != null)
+            {
+                RectTransform trRect = trPanel.GetComponent<RectTransform>();
+                if (trRect != null)
+                {
+                    trRect.anchorMin = new Vector2(1f, 1f);
+                    trRect.anchorMax = new Vector2(1f, 1f);
+                    trRect.pivot = new Vector2(1f, 1f);
+                    trRect.anchoredPosition = new Vector2(-25f, -25f);
+                    trRect.sizeDelta = new Vector2(165f, 75f);
+                }
+
+                Transform speedTr = trPanel.Find("Btn_Speed") ?? (trPanel.childCount > 0 ? trPanel.GetChild(0) : null);
+                if (speedTr != null)
+                {
+                    speedTr.name = "Btn_Speed";
+                    RectTransform sr = speedTr.GetComponent<RectTransform>();
+                    if (sr != null)
+                    {
+                        sr.anchorMin = sr.anchorMax = sr.pivot = new Vector2(0.5f, 0.5f);
+                        sr.anchoredPosition = new Vector2(-38f, 0f);
+                        sr.sizeDelta = new Vector2(62f, 52f);
+                    }
+                }
+
+                Transform pauseTr = trPanel.Find("Btn_Pause") ?? (trPanel.childCount > 1 ? trPanel.GetChild(1) : null);
+                if (pauseTr != null)
+                {
+                    pauseTr.name = "Btn_Pause";
+                    RectTransform pr = pauseTr.GetComponent<RectTransform>();
+                    if (pr != null)
+                    {
+                        pr.anchorMin = pr.anchorMax = pr.pivot = new Vector2(0.5f, 0.5f);
+                        pr.anchoredPosition = new Vector2(38f, 0f);
+                        pr.sizeDelta = new Vector2(62f, 52f);
+                    }
+                }
+            }
         }
 
         /// <summary>
         /// Tự động dò tìm các icon Top HUD và các nút Bottom Dock nếu chưa được gán thủ công trong Inspector.
         /// </summary>
-        private void AutoBindHUDReferences()
+        public void AutoBindHUDReferences()
         {
             // 1. Tự động liên kết Top HUD
             if (livesIcon == null && livesText != null && livesText.transform.parent != null)
@@ -332,6 +389,155 @@ namespace KingdomDefense.UI
                     }
                 }
             }
+
+#if UNITY_EDITOR
+            if (iconPause == null)
+            {
+                iconPause = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_KingdomDefense/Sprites/UI/btn_pause.png");
+            }
+            if (iconResume == null)
+            {
+                iconResume = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_KingdomDefense/Sprites/UI/btn_resume.png");
+            }
+#endif
+
+            // 3. Tự động liên kết TopRight Control Panel (Speed, Pause)
+            Transform trPanel = transform.Find("TopRight_ControlPanel");
+            if (trPanel != null)
+            {
+                Transform speedTr = trPanel.Find("Btn_Speed") ?? (trPanel.childCount > 0 ? trPanel.GetChild(0) : null);
+                if (speedTr != null)
+                {
+                    if (speedBtn == null) speedBtn = speedTr.GetComponent<Button>();
+                    if (speedText == null) speedText = speedTr.Find("Label")?.GetComponent<Text>() ?? speedTr.GetComponentInChildren<Text>();
+                }
+
+                Transform pauseTr = trPanel.Find("Btn_Pause") ?? (trPanel.childCount > 1 ? trPanel.GetChild(1) : null);
+                if (pauseTr != null)
+                {
+                    if (pauseBtn == null) pauseBtn = pauseTr.GetComponent<Button>();
+                    if (pauseText == null)
+                    {
+                        Transform lbl = pauseTr.Find("Label");
+                        if (lbl != null) pauseText = lbl.GetComponent<Text>();
+                        else pauseText = pauseTr.GetComponentInChildren<Text>();
+                    }
+
+                    Image pauseImg = pauseTr.GetComponent<Image>();
+                    if (pauseImg != null && iconPause != null && pauseImg.sprite == null)
+                    {
+                        pauseImg.sprite = _isPaused ? iconResume : iconPause;
+                        pauseImg.color = Color.white;
+                    }
+
+                    if (pauseText == null && iconPause == null)
+                    {
+                        GameObject lblObj = new GameObject("Label");
+                        lblObj.transform.SetParent(pauseTr, false);
+                        RectTransform lr = lblObj.AddComponent<RectTransform>();
+                        lr.anchorMin = Vector2.zero;
+                        lr.anchorMax = Vector2.one;
+                        lr.sizeDelta = Vector2.zero;
+                        pauseText = lblObj.AddComponent<Text>();
+                        pauseText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+                        pauseText.fontSize = 24;
+                        pauseText.fontStyle = FontStyle.Bold;
+                        pauseText.color = Color.white;
+                        pauseText.alignment = TextAnchor.MiddleCenter;
+                        pauseText.raycastTarget = false;
+
+                        Outline o = lblObj.AddComponent<Outline>();
+                        o.effectColor = Color.black;
+                        o.effectDistance = new Vector2(1.5f, -1.5f);
+                    }
+                }
+            }
+
+            if (pauseOverlay == null)
+            {
+                Transform overlayTr = transform.Find("Pause_Overlay");
+                if (overlayTr != null) pauseOverlay = overlayTr.gameObject;
+            }
+        }
+
+        /// <summary>
+        /// Khởi tạo hoặc tìm kiếm màn che phủ mờ (Dark Tint Overlay) khi game Tạm dừng.
+        /// </summary>
+        public void EnsurePauseOverlay()
+        {
+            if (pauseOverlay != null) return;
+
+            Transform existing = transform.Find("Pause_Overlay");
+            if (existing != null)
+            {
+                pauseOverlay = existing.gameObject;
+                return;
+            }
+
+            GameObject overlayObj = new GameObject("Pause_Overlay");
+            overlayObj.transform.SetParent(transform, false);
+            overlayObj.transform.SetAsLastSibling();
+
+            RectTransform r = overlayObj.AddComponent<RectTransform>();
+            r.anchorMin = Vector2.zero;
+            r.anchorMax = Vector2.one;
+            r.sizeDelta = Vector2.zero;
+            r.anchoredPosition = Vector2.zero;
+
+            Image darkTint = overlayObj.AddComponent<Image>();
+            darkTint.color = new Color(0.04f, 0.06f, 0.08f, 0.65f); // Phủ mờ điện ảnh
+            darkTint.raycastTarget = false; // Không chặn tương tác chuột
+
+            // Panel thông báo trung tâm
+            GameObject centerBox = new GameObject("Center_Banner");
+            centerBox.transform.SetParent(overlayObj.transform, false);
+            RectTransform cbr = centerBox.AddComponent<RectTransform>();
+            cbr.anchorMin = new Vector2(0.5f, 0.5f);
+            cbr.anchorMax = new Vector2(0.5f, 0.5f);
+            cbr.pivot = new Vector2(0.5f, 0.5f);
+            cbr.anchoredPosition = Vector2.zero;
+            cbr.sizeDelta = new Vector2(460f, 130f);
+
+            Image boxBg = centerBox.AddComponent<Image>();
+            boxBg.color = new Color(0.12f, 0.15f, 0.22f, 0.94f); // Slate Navy sang trọng
+
+            // Tiêu đề: ĐANG TẠM DỪNG
+            GameObject titleObj = new GameObject("Title_Text");
+            titleObj.transform.SetParent(centerBox.transform, false);
+            RectTransform tr = titleObj.AddComponent<RectTransform>();
+            tr.anchorMin = new Vector2(0f, 0.45f);
+            tr.anchorMax = new Vector2(1f, 1f);
+            tr.offsetMin = tr.offsetMax = Vector2.zero;
+
+            Text titleText = titleObj.AddComponent<Text>();
+            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            titleText.text = "⏸ ĐANG TẠM DỪNG";
+            titleText.fontSize = 28;
+            titleText.fontStyle = FontStyle.Bold;
+            titleText.color = new Color(1f, 0.88f, 0.25f, 1f); // Vàng kim hoàng gia
+            titleText.alignment = TextAnchor.MiddleCenter;
+
+            Outline to = titleObj.AddComponent<Outline>();
+            to.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            to.effectDistance = new Vector2(2f, -2f);
+
+            // Gợi ý phím tắt
+            GameObject subObj = new GameObject("Subtitle_Text");
+            subObj.transform.SetParent(centerBox.transform, false);
+            RectTransform sr = subObj.AddComponent<RectTransform>();
+            sr.anchorMin = new Vector2(0f, 0f);
+            sr.anchorMax = new Vector2(1f, 0.45f);
+            sr.offsetMin = sr.offsetMax = Vector2.zero;
+
+            Text subText = subObj.AddComponent<Text>();
+            subText.font = titleText.font;
+            subText.text = "Nhấn [Esc], [P] hoặc click biểu tượng ▶ để Tiếp tục";
+            subText.fontSize = 15;
+            subText.color = new Color(0.85f, 0.88f, 0.92f, 0.95f);
+            subText.alignment = TextAnchor.MiddleCenter;
+
+            pauseOverlay = overlayObj;
+            pauseOverlay.SetActive(false);
         }
 
         /// <summary>
@@ -354,16 +560,78 @@ namespace KingdomDefense.UI
 
         private void Update()
         {
-            // Tự hồi phục Mana theo thời gian
-            if (_currentMana < maxMana)
+            // Tự hồi phục Mana theo thời gian (chỉ khi không tạm dừng)
+            if (_currentMana < maxMana && !_isPaused)
             {
                 _currentMana = Mathf.Min(maxMana, _currentMana + manaRegenPerSecond * Time.deltaTime);
                 UpdateManaDisplay();
+            }
+
+            // Lắng nghe phím tắt điều khiển: [Esc]/[P] cho Pause, [Tab] cho 1X/2X Speed
+            HandleControlHotkeys();
+        }
+
+        private void HandleControlHotkeys()
+        {
+            bool togglePause = false;
+            bool toggleSpeed = false;
+
+#if ENABLE_INPUT_SYSTEM
+            if (UnityEngine.InputSystem.Keyboard.current != null)
+            {
+                togglePause = UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame ||
+                              UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame;
+                toggleSpeed = UnityEngine.InputSystem.Keyboard.current.tabKey.wasPressedThisFrame ||
+                              UnityEngine.InputSystem.Keyboard.current.backquoteKey.wasPressedThisFrame;
+            }
+#endif
+            if (!togglePause)
+            {
+                try
+                {
+                    togglePause = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
+                }
+                catch (System.InvalidOperationException) { }
+            }
+
+            if (!toggleSpeed)
+            {
+                try
+                {
+                    toggleSpeed = Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.BackQuote);
+                }
+                catch (System.InvalidOperationException) { }
+            }
+
+            if (togglePause)
+            {
+                // Nếu người chơi đang chọn tháp để cắm -> Esc sẽ hủy chọn tháp trước
+                if (BuildManager.Instance != null && BuildManager.Instance.SelectedTowerType != TowerType.None)
+                {
+                    BuildManager.Instance.SelectTowerToBuild(TowerType.None);
+                    return;
+                }
+                TogglePause();
+            }
+            else if (toggleSpeed)
+            {
+                ToggleFastForward();
             }
         }
 
         private void SetupButtonListeners()
         {
+            if (speedBtn != null)
+            {
+                speedBtn.onClick.RemoveAllListeners();
+                speedBtn.onClick.AddListener(ToggleFastForward);
+            }
+            if (pauseBtn != null)
+            {
+                pauseBtn.onClick.RemoveAllListeners();
+                pauseBtn.onClick.AddListener(TogglePause);
+            }
+
             if (archerBtn != null)
             {
                 archerBtn.onClick.RemoveAllListeners();
@@ -751,14 +1019,81 @@ namespace KingdomDefense.UI
         public void ToggleFastForward()
         {
             _isFastForward = !_isFastForward;
-            Time.timeScale = _isFastForward ? 2.0f : 1.0f;
+            if (!_isPaused)
+            {
+                Time.timeScale = _isFastForward ? 2.0f : 1.0f;
+            }
 
             if (speedText != null)
             {
                 speedText.text = _isFastForward ? "2X" : "1X";
-                speedText.color = _isFastForward ? new Color(1f, 0.85f, 0.2f) : Color.white;
+                speedText.color = _isFastForward ? new Color(1.0f, 0.88f, 0.25f, 1f) : Color.white;
             }
-            Debug.Log($"[GameHUD] Tốc độ game: {Time.timeScale}x");
+
+            if (speedBtn != null)
+            {
+                Image btnImg = speedBtn.GetComponent<Image>();
+                if (btnImg != null)
+                {
+                    btnImg.color = _isFastForward 
+                        ? new Color(0.18f, 0.25f, 0.36f, 0.98f) 
+                        : new Color(0.12f, 0.15f, 0.20f, 0.92f);
+                }
+            }
+
+            OnFastForwardToggled?.Invoke(_isFastForward);
+            Debug.Log($"[GameHUD] Tốc độ game: {(_isFastForward ? "2X" : "1X")} (Time.timeScale={Time.timeScale})");
+        }
+
+        /// <summary>
+        /// Thiết lập trực tiếp chế độ tăng tốc độ game.
+        /// </summary>
+        public void SetFastForward(bool fastForward)
+        {
+            if (_isFastForward == fastForward) return;
+            ToggleFastForward();
+        }
+
+        /// <summary>
+        /// Cập nhật hiển thị đồ họa của Nút Tạm dừng / Tiếp tục:
+        /// - Khi game ĐANG CHƠI: Hiển thị icon ⏸ (hai vạch dọc Pause sắc nét).
+        /// - Khi game ĐANG TẠM DỪNG: Hiển thị icon ▶ (tam giác Play màu vàng kim nổi bật).
+        /// </summary>
+        public void UpdatePauseVisuals()
+        {
+            if (pauseBtn != null)
+            {
+                Image btnImg = pauseBtn.GetComponent<Image>();
+                if (btnImg != null)
+                {
+                    if (iconPause != null && iconResume != null)
+                    {
+                        btnImg.sprite = _isPaused ? iconResume : iconPause;
+                        btnImg.color = Color.white;
+                    }
+                    else
+                    {
+                        btnImg.color = _isPaused 
+                            ? new Color(0.22f, 0.28f, 0.40f, 0.98f) 
+                            : new Color(0.12f, 0.15f, 0.20f, 0.92f);
+                    }
+                }
+            }
+
+            if (pauseText != null)
+            {
+                if (iconPause != null && iconResume != null)
+                {
+                    // Khi đã có sprite chuẩn hiển thị trực tiếp trên nút, ẩn text để icon rõ đẹp nhất
+                    pauseText.text = "";
+                }
+                else
+                {
+                    // Fallback an toàn khi chưa gán sprite: Dùng ký tự chuẩn ASCII "||" và "▶"
+                    pauseText.text = _isPaused ? "▶" : "||";
+                    pauseText.color = _isPaused ? new Color(1.0f, 0.88f, 0.25f, 1f) : Color.white;
+                }
+            }
         }
 
         /// <summary>
@@ -766,16 +1101,33 @@ namespace KingdomDefense.UI
         /// </summary>
         public void TogglePause()
         {
-            if (Time.timeScale > 0.01f)
+            _isPaused = !_isPaused;
+
+            if (_isPaused)
             {
                 Time.timeScale = 0f;
+                EnsurePauseOverlay();
+                if (pauseOverlay != null) pauseOverlay.SetActive(true);
                 Debug.Log("[GameHUD] Đã tạm dừng game (Pause).");
             }
             else
             {
                 Time.timeScale = _isFastForward ? 2.0f : 1.0f;
-                Debug.Log("[GameHUD] Tiếp tục game.");
+                if (pauseOverlay != null) pauseOverlay.SetActive(false);
+                Debug.Log($"[GameHUD] Tiếp tục game (Resume, timeScale={Time.timeScale}).");
             }
+
+            UpdatePauseVisuals();
+            OnPauseToggled?.Invoke(_isPaused);
+        }
+
+        /// <summary>
+        /// Thiết lập trực tiếp trạng thái Tạm dừng game.
+        /// </summary>
+        public void SetPaused(bool pause)
+        {
+            if (_isPaused == pause) return;
+            TogglePause();
         }
 
         private void UpdateAllDisplays()
@@ -787,7 +1139,14 @@ namespace KingdomDefense.UI
             }
             if (goldText != null) goldText.text = _currentGold.ToString();
             if (waveText != null) waveText.text = $"WAVE {_currentWave:D2} / {totalWaves:D2}";
-            if (speedText != null) speedText.text = _isFastForward ? "2X" : "1X";
+            
+            if (speedText != null)
+            {
+                speedText.text = _isFastForward ? "2X" : "1X";
+                speedText.color = _isFastForward ? new Color(1.0f, 0.88f, 0.25f, 1f) : Color.white;
+            }
+            
+            UpdatePauseVisuals();
 
             if (archerCostText != null) archerCostText.text = "100";
             if (bombCostText != null) bombCostText.text = "125";
