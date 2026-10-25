@@ -1,6 +1,7 @@
 using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
+using KingdomDefense.VFX;
 
 namespace KingdomDefense.Towers
 {
@@ -98,6 +99,11 @@ namespace KingdomDefense.Towers
                     trail.startColor = new Color(1f, 0.92f, 0.5f, 0.85f); // Ánh vàng rực rỡ
                     trail.endColor = new Color(1f, 0.6f, 0.2f, 0.0f);
                 }
+            }
+
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.AttachArrowTrail(gameObject);
             }
         }
 
@@ -214,22 +220,10 @@ namespace KingdomDefense.Towers
         /// </summary>
         private void CreateImpactEffect()
         {
-            GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            spark.name = "Arrow_Impact_Spark";
-            spark.transform.position = transform.position;
-            spark.transform.localScale = Vector3.one * 0.22f;
-            Destroy(spark.GetComponent<Collider>());
-
-            Renderer r = spark.GetComponent<Renderer>();
-            if (r != null)
+            if (VFXManager.Instance != null)
             {
-                Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
-                Material mat = new Material(s);
-                mat.color = new Color(1f, 0.88f, 0.35f); // Vàng cam phát sáng
-                r.sharedMaterial = mat;
+                VFXManager.Instance.SpawnArrowHit(transform.position, -transform.forward);
             }
-
-            Destroy(spark, 0.15f);
         }
     }
 }

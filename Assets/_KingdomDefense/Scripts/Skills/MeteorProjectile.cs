@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Core;
 using KingdomDefense.Cameras;
+using KingdomDefense.VFX;
 
 namespace KingdomDefense.Skills
 {
@@ -194,24 +195,16 @@ namespace KingdomDefense.Skills
 
         private void SpawnImpactExplosionVFX()
         {
-            GameObject explosion = new GameObject("Meteor_Impact_Explosion");
-            explosion.transform.position = _targetPosition;
-
-            // 1. Quả cầu lửa nổ bung phồng to rồi tan biến
-            GameObject fireSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            fireSphere.transform.SetParent(explosion.transform, false);
-            fireSphere.transform.localScale = Vector3.one * 1.5f;
-            Destroy(fireSphere.GetComponent<Collider>());
-            Renderer fr = fireSphere.GetComponent<Renderer>();
-            if (fr != null)
+            // Kích hoạt hệ thống hạt Particle System vụ nổ cấp đại từ VFXManager
+            if (VFXManager.Instance != null)
             {
-                Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
-                Material fMat = new Material(s);
-                fMat.color = new Color(1.0f, 0.45f, 0.1f, 0.9f);
-                fr.sharedMaterial = fMat;
+                VFXManager.Instance.SpawnMeteorImpact(_targetPosition, _aoeRadius);
             }
 
-            // 2. Vệt nứt cháy đen trên mặt đất (Scorched Crater)
+            GameObject explosion = new GameObject("Meteor_Impact_Crater");
+            explosion.transform.position = _targetPosition;
+
+            // Vệt nứt cháy đen trên mặt đất (Scorched Crater)
             GameObject crater = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             crater.transform.SetParent(explosion.transform, false);
             crater.transform.localPosition = new Vector3(0f, 0.04f, 0f);
@@ -226,51 +219,8 @@ namespace KingdomDefense.Skills
                 cr.sharedMaterial = cMat;
             }
 
-            // 3. 16 Khối đất đá rực lửa văng tung tóe ra xung quanh
-            for (int i = 0; i < 16; i++)
-            {
-                GameObject debris = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                debris.transform.SetParent(explosion.transform, false);
-                float angle = i * Mathf.PI * 2f / 16f;
-                Vector3 blastDir = new Vector3(Mathf.Cos(angle), Random.Range(0.4f, 1.2f), Mathf.Sin(angle)).normalized;
-                debris.transform.localPosition = blastDir * Random.Range(0.8f, 2.2f);
-                debris.transform.localScale = Vector3.one * Random.Range(0.25f, 0.5f);
-                Destroy(debris.GetComponent<Collider>());
-
-                Renderer dr = debris.GetComponent<Renderer>();
-                if (dr != null)
-                {
-                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
-                    Material dMat = new Material(s);
-                    dMat.color = (i % 2 == 0) ? new Color(1.0f, 0.5f, 0.1f) : new Color(0.2f, 0.15f, 0.15f);
-                    dr.sharedMaterial = dMat;
-                }
-            }
-
-            // 4. Xung kích sóng nổ lan rộng
-            GameObject shockwave = new GameObject("Shockwave_Ring");
-            shockwave.transform.SetParent(explosion.transform, false);
-            shockwave.transform.localPosition = new Vector3(0f, 0.06f, 0f);
-            LineRenderer lr = shockwave.AddComponent<LineRenderer>();
-            lr.useWorldSpace = false;
-            lr.loop = true;
-            lr.startWidth = 0.25f;
-            lr.endWidth = 0.25f;
-            Shader lineShader = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color");
-            Material lineMat = new Material(lineShader);
-            lineMat.color = new Color(1.0f, 0.65f, 0.2f, 0.95f);
-            lr.sharedMaterial = lineMat;
-
-            int segs = 48;
-            lr.positionCount = segs;
-            for (int i = 0; i < segs; i++)
-            {
-                float a = i * Mathf.PI * 2f / segs;
-                lr.SetPosition(i, new Vector3(Mathf.Cos(a) * _aoeRadius, 0f, Mathf.Sin(a) * _aoeRadius));
-            }
-
-            // Tự tiêu hủy hiệu ứng sau 2.5s (giữ hố đất cháy thêm một lúc tạo cảm giác chiến trường)
-            Destroy(explosion, 2.5f);
+            // Tự tiêu hủy hố đất cháy sau 4.5s
+            Destroy(explosion, 4.5f);
         }
     }
 }

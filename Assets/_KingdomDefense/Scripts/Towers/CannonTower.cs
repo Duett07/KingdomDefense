@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
+using KingdomDefense.VFX;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -277,28 +278,11 @@ namespace KingdomDefense.Towers
 
         private void SpawnMuzzleBlast(Vector3 pos)
         {
-            GameObject blast = new GameObject("Muzzle_Blast_Puff");
-            blast.transform.position = pos;
-
-            for (int i = 0; i < 4; i++)
+            if (VFXManager.Instance != null)
             {
-                GameObject p = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                p.transform.SetParent(blast.transform, false);
-                p.transform.localPosition = Random.insideUnitSphere * 0.25f;
-                p.transform.localScale = Vector3.one * Random.Range(0.2f, 0.38f);
-                Destroy(p.GetComponent<Collider>());
-
-                Renderer r = p.GetComponent<Renderer>();
-                if (r != null)
-                {
-                    Shader s = Shader.Find("Standard") ?? Shader.Find("Diffuse");
-                    Material mat = new Material(s);
-                    mat.color = new Color(0.75f, 0.72f, 0.65f, 0.75f);
-                    r.sharedMaterial = mat;
-                }
+                Vector3 fwd = firePoint != null ? firePoint.forward : transform.forward;
+                VFXManager.Instance.SpawnCannonMuzzle(pos, fwd);
             }
-
-            Destroy(blast, 0.25f);
         }
 
         protected override void OnDrawGizmosSelected()

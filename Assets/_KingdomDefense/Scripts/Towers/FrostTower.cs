@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
+using KingdomDefense.VFX;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -348,6 +349,11 @@ namespace KingdomDefense.Towers
         /// </summary>
         private void SpawnBlizzardPulseFX()
         {
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.SpawnFrostNova(transform.position, range);
+            }
+
             GameObject pulse = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pulse.name = "Frost_Nova_Wave";
             pulse.transform.position = transform.position + new Vector3(0f, 0.05f, 0f);
