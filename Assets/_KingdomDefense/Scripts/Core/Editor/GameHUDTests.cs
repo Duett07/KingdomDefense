@@ -265,5 +265,59 @@ namespace KingdomDefense.Tests
             Object.DestroyImmediate(dummyPause);
             Object.DestroyImmediate(dummyResume);
         }
+
+        [Test]
+        public void PauseModal_ContainsThreeButtons_ResumeRestartAndMenu()
+        {
+            _hud.EnsurePauseOverlay();
+            var fieldOverlay = typeof(GameHUD).GetField("pauseOverlay", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            GameObject overlay = fieldOverlay?.GetValue(_hud) as GameObject;
+
+            Assert.IsNotNull(overlay, "Pause overlay phải được khởi tạo.");
+            Transform panel = overlay.transform.Find("PauseModal_Panel");
+            Assert.IsNotNull(panel, "Hộp thoại PauseModal_Panel phải tồn tại.");
+
+            // Tìm 3 nút chức năng
+            UnityEngine.UI.Button[] buttons = panel.GetComponentsInChildren<UnityEngine.UI.Button>();
+            Assert.AreEqual(3, buttons.Length, "Pause Modal phải chứa đúng 3 nút: Resume, Restart, và Quit/Menu.");
+
+            bool hasResume = false;
+            bool hasRestart = false;
+            bool hasMenu = false;
+
+            foreach (var b in buttons)
+            {
+                UnityEngine.UI.Text lbl = b.GetComponentInChildren<UnityEngine.UI.Text>();
+                if (lbl != null)
+                {
+                    if (lbl.text.Contains("RESUME") || lbl.text.Contains("TIẾP TỤC")) hasResume = true;
+                    if (lbl.text.Contains("RESTART") || lbl.text.Contains("CHƠI LẠI")) hasRestart = true;
+                    if (lbl.text.Contains("MENU") || lbl.text.Contains("THOÁT")) hasMenu = true;
+                }
+            }
+
+            Assert.IsTrue(hasResume, "Phải có nút Tiếp tục (Resume).");
+            Assert.IsTrue(hasRestart, "Phải có nút Chơi lại (Restart).");
+            Assert.IsTrue(hasMenu, "Phải có nút Về menu / Thoát.");
+        }
+
+        [Test]
+        public void PauseModal_ClosePauseModal_ResumesGameAndHidesOverlay()
+        {
+            _hud.TogglePause();
+            Assert.IsTrue(_hud.IsPaused);
+            Assert.AreEqual(0.0f, Time.timeScale);
+
+            _hud.ClosePauseModal();
+            Assert.IsFalse(_hud.IsPaused);
+            Assert.AreEqual(1.0f, Time.timeScale);
+
+            var fieldOverlay = typeof(GameHUD).GetField("pauseOverlay", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            GameObject overlay = fieldOverlay?.GetValue(_hud) as GameObject;
+            if (overlay != null)
+            {
+                Assert.IsFalse(overlay.activeSelf, "Pause Overlay phải bị ẩn sau khi đóng.");
+            }
+        }
     }
 }
