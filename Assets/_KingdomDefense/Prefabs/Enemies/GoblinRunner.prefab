@@ -294,7 +294,7 @@ GameObject:
   - component: {fileID: 831605822047212933}
   - component: {fileID: 1828115967197498175}
   - component: {fileID: 683463905152840475}
-  - component: {fileID: 2085254805227847584}
+  - component: {fileID: 5516993667464894844}
   m_Layer: 0
   m_Name: GoblinRunner
   m_TagString: Enemy
@@ -378,7 +378,7 @@ MonoBehaviour:
   healthBarOffset: {x: 0, y: 1.05, z: 0}
   isFlying: 0
   flightHeight: 0
---- !u!114 &2085254805227847584
+--- !u!114 &5516993667464894844
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

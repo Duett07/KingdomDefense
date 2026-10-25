@@ -91,12 +91,28 @@ namespace KingdomDefense.Build
                 catch (System.InvalidOperationException) { }
             }
 
+            bool rightClick = false;
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null)
+            {
+                rightClick = Mouse.current.rightButton.wasPressedThisFrame;
+            }
+#endif
+            if (!rightClick)
+            {
+                try
+                {
+                    rightClick = Input.GetMouseButtonDown(1);
+                }
+                catch (System.InvalidOperationException) { }
+            }
+
             if (key1) SelectTowerToBuild(TowerType.Archer);
             else if (key2) SelectTowerToBuild(TowerType.Bomb);
             else if (key3) SelectTowerToBuild(TowerType.Mage);
-            else if (key4) SelectTowerToBuild(TowerType.Frost);
-            else if (key5) SelectTowerToBuild(TowerType.Wall);
-            else if (keyEsc) SelectTowerToBuild(TowerType.None);
+            else if (key4) SelectTowerToBuild(TowerType.Wall);
+            else if (key5) SelectTowerToBuild(TowerType.Frost);
+            else if (keyEsc || rightClick) SelectTowerToBuild(TowerType.None);
         }
 
         /// <summary>
@@ -111,7 +127,7 @@ namespace KingdomDefense.Build
                                    UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_A_yellow.fbx");
             if (bombTowerPrefab == null)
                 bombTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/CannonTower.prefab") ??
-                                  UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_catapult_blue.fbx");
+                                  UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/yellow/building_tower_catapult_yellow.fbx");
             if (mageTowerPrefab == null)
                 mageTowerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(baseP + "buildings/blue/building_tower_B_blue.fbx");
             if (frostTowerPrefab == null)
@@ -125,9 +141,17 @@ namespace KingdomDefense.Build
 
         /// <summary>
         /// Chọn loại công trình để xây dựng.
+        /// - Nhấn lần 1: Chọn tháp (nếu đủ vàng).
+        /// - Nhấn lần 2 hoặc click chuột phải: Hủy chọn (Toggle).
         /// </summary>
         public void SelectTowerToBuild(TowerType type)
         {
+            if (type != TowerType.None && !HasEnoughMoney(type))
+            {
+                Debug.LogWarning($"[BuildManager] Không đủ vàng để chọn {type} (Cần {GetCost(type)} Vàng)!");
+                return;
+            }
+
             if (_selectedTowerType == type)
             {
                 _selectedTowerType = TowerType.None; // Bấm lại lần nữa để hủy chọn
@@ -179,14 +203,23 @@ namespace KingdomDefense.Build
                 return false;
             }
 
-            int cost = GetCost(_selectedTowerType);
+            // Ghi nhận loại công trình trước khi trừ vàng, tránh bị SpendGold kích hoạt UpdateTowerButtonsAvailability làm reset _selectedTowerType
+            TowerType towerTypeToBuild = _selectedTowerType;
+            int cost = GetCost(towerTypeToBuild);
+
+            if (!HasEnoughMoney(towerTypeToBuild))
+            {
+                Debug.LogWarning($"[BuildManager] Không đủ vàng! Cần {cost} vàng.");
+                return false;
+            }
+
             if (GameHUD.Instance != null && !GameHUD.Instance.SpendGold(cost))
             {
                 Debug.LogWarning($"[BuildManager] Không đủ vàng! Cần {cost} vàng.");
                 return false;
             }
 
-            GameObject prefab = _selectedTowerType switch
+            GameObject prefab = towerTypeToBuild switch
             {
                 TowerType.Archer => archerTowerPrefab,
                 TowerType.Bomb => bombTowerPrefab,
@@ -239,8 +272,8 @@ namespace KingdomDefense.Build
                 }
             }
 
-            // Đảm bảo gắn script chuyên biệt cho từng loại Tháp
-            if (_selectedTowerType == TowerType.Archer)
+            // Đảm bảo gắn script chuyên biệt cho từng loại Tháp theo towerTypeToBuild
+            if (towerTypeToBuild == TowerType.Archer)
             {
                 ArcherTower archerTower = towerInstance.GetComponent<ArcherTower>();
                 if (archerTower == null)
@@ -248,7 +281,7 @@ namespace KingdomDefense.Build
                     archerTower = towerInstance.AddComponent<ArcherTower>();
                 }
             }
-            else if (_selectedTowerType == TowerType.Bomb)
+            else if (towerTypeToBuild == TowerType.Bomb)
             {
                 CannonTower cannonTower = towerInstance.GetComponent<CannonTower>();
                 if (cannonTower == null)
@@ -256,7 +289,7 @@ namespace KingdomDefense.Build
                     cannonTower = towerInstance.AddComponent<CannonTower>();
                 }
             }
-            else if (_selectedTowerType == TowerType.Mage)
+            else if (towerTypeToBuild == TowerType.Mage)
             {
                 MageTower mageTower = towerInstance.GetComponent<MageTower>();
                 if (mageTower == null)
@@ -264,7 +297,7 @@ namespace KingdomDefense.Build
                     mageTower = towerInstance.AddComponent<MageTower>();
                 }
             }
-            else if (_selectedTowerType == TowerType.Frost)
+            else if (towerTypeToBuild == TowerType.Frost)
             {
                 FrostTower frostTower = towerInstance.GetComponent<FrostTower>();
                 if (frostTower == null)
@@ -281,7 +314,7 @@ namespace KingdomDefense.Build
                 builtTower.InitializeBaseCost(cost);
             }
 
-            Debug.Log($"[BuildManager] Đã xây thành công {_selectedTowerType} tại {buildPos}! (-{cost} Vàng)");
+            Debug.Log($"[BuildManager] Đã xây thành công {towerTypeToBuild} tại {buildPos}! (-{cost} Vàng)");
 
             // Bỏ chọn sau khi xây xong
             SelectTowerToBuild(TowerType.None);
