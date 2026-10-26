@@ -147,6 +147,14 @@ namespace KingdomDefense.Towers
             if (!_isFlying) return;
 
             _elapsedTime += Time.deltaTime;
+            // Failsafe: Tự động phát nổ và thu hồi nếu bay quá thời gian tối đa (2.0s)
+            if (_elapsedTime > 2.0f)
+            {
+                _isFlying = false;
+                Explode();
+                return;
+            }
+
             float t = Mathf.Clamp01(_elapsedTime / _totalDuration);
 
             // Tọa độ nội suy tuyến tính mặt phẳng

@@ -126,9 +126,18 @@ namespace KingdomDefense.Towers
         private void Update()
         {
             _flightTime += Time.deltaTime;
-            // Tự động thu hồi nếu bay lạc hoặc quá thời gian tối đa
-            if (_flightTime > 4.5f)
+
+            // 1. Tự động thu hồi nếu bay quá 2.0s (tránh đạn lạc bay mãi ngoài bản đồ)
+            if (_flightTime > 2.0f)
             {
+                Despawn();
+                return;
+            }
+
+            // 2. Chạm đất cắm xuống mặt phẳng (Y <= 0.15m) -> Hiệu ứng bụi đất và thu hồi ngay về Pool
+            if (transform.position.y <= 0.15f)
+            {
+                CreateImpactEffect();
                 Despawn();
                 return;
             }
@@ -144,7 +153,7 @@ namespace KingdomDefense.Towers
             }
             else
             {
-                // Nếu quái đã bị hạ gục trước khi tên bay tới, tiếp tục bay thẳng theo hướng cũ
+                // Nếu quái đã bị hạ gục trước khi tên bay tới, tiếp tục bay thẳng theo hướng cũ cắm xuống đất
                 dir = _lastDirection;
                 if (!_hasTarget || dir == Vector3.zero)
                 {

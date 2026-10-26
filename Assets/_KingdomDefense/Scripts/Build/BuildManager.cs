@@ -218,11 +218,27 @@ namespace KingdomDefense.Build
             };
         }
 
+        private float _lastBuildTime = 0f;
+        private const float BUILD_DEBOUNCE = 0.08f;
+
         /// <summary>
         /// Thực hiện xây dựng công trình lên ô Node.
+        /// Chặn đa tầng: Kiểm tra ô đã có tháp (HasTurret) và chống click đúp liên tục trong cùng frame (Debounce).
         /// </summary>
         public bool BuildTowerOn(Node node)
         {
+            if (node == null || node.HasTurret)
+            {
+                Debug.LogWarning("[BuildManager] Ô này không hợp lệ hoặc đã có công trình!");
+                return false;
+            }
+
+            if (Time.unscaledTime - _lastBuildTime < BUILD_DEBOUNCE)
+            {
+                // Chặn click spam quá nhanh
+                return false;
+            }
+
             if (_selectedTowerType == TowerType.None)
             {
                 Debug.LogWarning("[BuildManager] Chưa chọn công trình nào từ UI! Hãy click chọn Tháp hoặc Tường thành trước.");
@@ -342,6 +358,8 @@ namespace KingdomDefense.Build
 
             Debug.Log($"[BuildManager] Đã xây thành công {towerTypeToBuild} tại {buildPos}! (-{cost} Vàng)");
             AudioManager.Instance?.PlayTowerPlaced();
+
+            _lastBuildTime = Time.unscaledTime;
 
             // Bỏ chọn sau khi xây xong
             SelectTowerToBuild(TowerType.None);

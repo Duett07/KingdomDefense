@@ -58,11 +58,14 @@ namespace KingdomDefense.Towers
         private LineRenderer _rangeLine;
         private GameObject _tierVisualBadge;
 
+        protected bool isSold = false;
+
         public Node ParentNode { get; set; }
         public string TowerDisplayName => towerDisplayName;
         public int Level => level;
         public int MaxLevel => 3;
-        public bool CanUpgrade => level < MaxLevel;
+        public bool CanUpgrade => !isSold && level < MaxLevel;
+        public bool IsSold => isSold;
         public int TotalInvestedGold => totalInvestedGold;
         public int NextUpgradeCost => level == 1 ? upgradeCostLv2 : (level == 2 ? upgradeCostLv3 : 0);
         public int SellAmount => Mathf.RoundToInt(totalInvestedGold * 0.7f);
@@ -322,7 +325,7 @@ namespace KingdomDefense.Towers
 
         public virtual bool TryUpgrade()
         {
-            if (!CanUpgrade) return false;
+            if (isSold || !CanUpgrade) return false;
             int cost = NextUpgradeCost;
             if (GameHUD.Instance != null && !GameHUD.Instance.SpendGold(cost))
             {
@@ -414,6 +417,9 @@ namespace KingdomDefense.Towers
 
         public virtual void Sell()
         {
+            if (isSold) return;
+            isSold = true;
+
             int refund = SellAmount;
             if (GameHUD.Instance != null)
             {

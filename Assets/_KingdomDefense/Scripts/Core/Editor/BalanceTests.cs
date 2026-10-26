@@ -15,7 +15,6 @@ namespace KingdomDefense.Tests
             Assert.IsNotNull(config, "WaveConfig mặc định phải tạo thành công.");
             Assert.AreEqual(10, config.TotalWaves, "Tổng số Wave chuẩn phải là 10.");
 
-            int prevEnemyCount = 0;
             for (int w = 1; w <= 10; w++)
             {
                 WaveDefinition wave = config.GetWave(w);
