@@ -235,6 +235,7 @@ namespace KingdomDefense.Cameras
         {
             HandleKeyboardAndEdgePan();
             HandleMouseDrag();
+            HandleTouchControls();
             HandleZoom();
             ClampTargetPosition();
 
@@ -243,6 +244,61 @@ namespace KingdomDefense.Cameras
             // Nội suy mượt mà vị trí camera đến vị trí mục tiêu (hoàn toàn zero-drift)
             _currentBasePosition = Vector3.Lerp(_currentBasePosition, _targetPosition, Time.deltaTime * smoothSpeed);
             transform.position = _currentBasePosition + _shakeOffset;
+        }
+
+        /// <summary>
+        /// Xử lý cảm ứng trên thiết bị di động (Mobile Touch):
+        /// - 1 ngón chạm kéo: Di chuyển Camera trên mặt phẳng XZ (tránh click nhầm UI).
+        /// - 2 ngón vuốt chụm/tách (Pinch): Zoom gần / xa mượt mà.
+        /// </summary>
+        private void HandleTouchControls()
+        {
+            if (Input.touchCount == 0) return;
+
+            // 1 Ngón kéo màn hình
+            if (Input.touchCount == 1)
+            {
+                UnityEngine.Touch touch = Input.GetTouch(0);
+
+                if (UnityEngine.EventSystems.EventSystem.current != null &&
+                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                {
+                    return;
+                }
+
+                if (touch.phase == UnityEngine.TouchPhase.Moved)
+                {
+                    Vector2 delta = touch.deltaPosition;
+                    Vector3 camForward = transform.forward;
+                    camForward.y = 0f;
+                    camForward.Normalize();
+
+                    Vector3 camRight = transform.right;
+                    camRight.y = 0f;
+                    camRight.Normalize();
+
+                    Vector3 dragVector = (-camRight * delta.x - camForward * delta.y) * (dragSensitivity * 0.04f);
+                    _targetPosition += dragVector;
+                }
+            }
+            // 2 Ngón Pinch để Zoom
+            else if (Input.touchCount == 2)
+            {
+                UnityEngine.Touch t1 = Input.GetTouch(0);
+                UnityEngine.Touch t2 = Input.GetTouch(1);
+
+                Vector2 prevT1 = t1.position - t1.deltaPosition;
+                Vector2 prevT2 = t2.position - t2.deltaPosition;
+
+                float prevDistance = (prevT1 - prevT2).magnitude;
+                float currentDistance = (t1.position - t2.position).magnitude;
+                float deltaDistance = currentDistance - prevDistance;
+
+                if (Mathf.Abs(deltaDistance) > 1f)
+                {
+                    _targetPosition += transform.forward * (deltaDistance * 0.05f * zoomSpeed * Time.deltaTime);
+                }
+            }
         }
 
         /// <summary>
