@@ -4,6 +4,7 @@ using UnityEngine;
 using KingdomDefense.Core;
 using KingdomDefense.Cameras;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.Skills
 {
@@ -156,8 +157,9 @@ namespace KingdomDefense.Skills
         {
             _hasImpacted = true;
 
-            // 1. Rung chấn màn hình cực mạnh
+            // 1. Rung chấn màn hình cực mạnh & âm thanh nổ thiên thạch
             CameraController.ShakeMeteor();
+            AudioManager.Instance?.PlayMeteorImpact();
 
             // 2. Gây 400 sát thương diện rộng lên toàn bộ quái vật
             ApplyAoEDamage();

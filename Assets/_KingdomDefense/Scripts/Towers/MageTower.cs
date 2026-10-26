@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -253,8 +254,9 @@ namespace KingdomDefense.Towers
                 VFXManager.Instance.SpawnLightningSparks(firePoint != null ? firePoint.position : startPos);
             }
 
-            // 4. Tạo hiệu ứng điện quang giải phóng tại mục tiêu (Target Discharge Spark)
+            // 4. Tạo hiệu ứng điện quang giải phóng tại mục tiêu (Target Discharge Spark) & âm thanh sét
             SpawnTargetDischargeFX(targetPos);
+            AudioManager.Instance?.PlayMagicZap();
         }
 
         /// <summary>

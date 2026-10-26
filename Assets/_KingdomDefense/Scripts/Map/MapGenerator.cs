@@ -238,6 +238,9 @@ namespace KingdomDefense.Map
                 }
             }
 
+            // Đảm bảo AudioManager luôn sẵn sàng phát BGM và SFX
+            KingdomDefense.Audio.AudioManager.GetOrCreateInstance();
+
             Light sun = Object.FindAnyObjectByType<Light>();
             if (sun != null && sun.type == LightType.Directional)
             {

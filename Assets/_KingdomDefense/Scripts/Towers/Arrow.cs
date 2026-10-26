@@ -2,6 +2,7 @@ using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.Towers
 {
@@ -117,6 +118,9 @@ namespace KingdomDefense.Towers
             {
                 _lastDirection = (target.position + Vector3.up * 0.45f - transform.position).normalized;
             }
+
+            // Âm thanh bật dây cung & tên vút bay
+            AudioManager.Instance?.PlayArrowShoot();
         }
 
         private void Update()

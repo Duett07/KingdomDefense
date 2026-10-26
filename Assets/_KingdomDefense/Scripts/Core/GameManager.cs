@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using KingdomDefense.UI;
 using KingdomDefense.Enemy;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.Core
 {
@@ -175,6 +176,7 @@ namespace KingdomDefense.Core
             Debug.Log($"[GameManager] === CHIẾN THẮNG VANG DỘI! === Sinh mệnh: {remainingLives}, Đạt: {_starsEarned} Sao!");
             OnGameStateChanged?.Invoke(_currentState);
             OnVictory?.Invoke(_starsEarned);
+            AudioManager.Instance?.PlayVictory();
 
             _endGameRoutine = StartCoroutine(EndGameSequenceRoutine(true, _starsEarned, remainingLives));
         }
@@ -193,6 +195,7 @@ namespace KingdomDefense.Core
             Debug.LogWarning("[GameManager] === VƯƠNG QUỐC ĐÃ THẤT THỦ! === Game Over.");
             OnGameStateChanged?.Invoke(_currentState);
             OnDefeat?.Invoke();
+            AudioManager.Instance?.PlayDefeat();
 
             _endGameRoutine = StartCoroutine(EndGameSequenceRoutine(false, 0, 0));
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.UI;
 using KingdomDefense.Core;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.Enemy
 {
@@ -403,6 +404,9 @@ namespace KingdomDefense.Enemy
             {
                 GameHUD.Instance.AddGold(goldReward);
             }
+
+            // Âm thanh quái gầm rú khi bị tiêu diệt
+            AudioManager.Instance?.PlayEnemyDeath();
 
             StartCoroutine(DeathRoutine());
         }

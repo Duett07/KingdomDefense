@@ -6,6 +6,7 @@ using KingdomDefense.Build;
 using KingdomDefense.Core;
 using KingdomDefense.Cameras;
 using KingdomDefense.Skills;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.UI
 {
@@ -78,6 +79,8 @@ namespace KingdomDefense.UI
         private float _currentMana;
         private bool _isFastForward;
         private bool _isPaused;
+        private Text _bgmToggleText;
+        private Text _sfxToggleText;
 
         // Trạng thái hiệu ứng và Coroutines phản hồi thị giác
         private Coroutine _heartbeatRoutine;
@@ -527,7 +530,7 @@ namespace KingdomDefense.UI
             cbr.anchorMax = new Vector2(0.5f, 0.5f);
             cbr.pivot = new Vector2(0.5f, 0.5f);
             cbr.anchoredPosition = Vector2.zero;
-            cbr.sizeDelta = new Vector2(480f, 380f);
+            cbr.sizeDelta = new Vector2(480f, 440f);
 
             Image boxBg = centerBox.AddComponent<Image>();
             boxBg.color = new Color(0.10f, 0.13f, 0.18f, 0.98f); // Đá phiến hoàng gia sẫm
@@ -586,6 +589,9 @@ namespace KingdomDefense.UI
                 else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             });
 
+            // 6. Thanh điều khiển Âm thanh nhanh (BGM & SFX Toggles)
+            CreateAudioToggleButtons(centerBox.transform, new Vector2(0f, -345f), defaultFont);
+
             pauseOverlay = overlayObj;
             pauseOverlay.SetActive(false);
         }
@@ -601,6 +607,95 @@ namespace KingdomDefense.UI
             br.pivot = new Vector2(0.5f, 0.5f);
             br.anchoredPosition = anchoredPos;
             br.sizeDelta = new Vector2(360f, 52f);
+
+            Image img = btnObj.AddComponent<Image>();
+            img.color = bgColor;
+
+            Button btn = btnObj.AddComponent<Button>();
+            btn.targetGraphic = img;
+
+            ColorBlock cb = btn.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(1.2f, 1.2f, 1.25f, 1f);
+            cb.pressedColor = new Color(0.85f, 0.85f, 0.9f, 1f);
+            btn.colors = cb;
+
+            if (onClickAction != null)
+            {
+                btn.onClick.AddListener(() =>
+                {
+                    AudioManager.Instance?.PlayUIClick();
+                    onClickAction.Invoke();
+                });
+            }
+
+            Outline bo = btnObj.AddComponent<Outline>();
+            bo.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            bo.effectDistance = new Vector2(1.5f, -1.5f);
+
+            GameObject textObj = new GameObject("Label");
+            textObj.transform.SetParent(btnObj.transform, false);
+            RectTransform tr = textObj.AddComponent<RectTransform>();
+            tr.anchorMin = Vector2.zero;
+            tr.anchorMax = Vector2.one;
+            tr.sizeDelta = Vector2.zero;
+
+            Text txt = textObj.AddComponent<Text>();
+            txt.font = font;
+            txt.text = label;
+            txt.fontSize = 17;
+            txt.fontStyle = FontStyle.Bold;
+            txt.color = Color.white;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.raycastTarget = false;
+        }
+
+        private void CreateAudioToggleButtons(Transform parent, Vector2 anchoredPos, Font font)
+        {
+            GameObject container = new GameObject("Audio_Controls_Row");
+            container.transform.SetParent(parent, false);
+            RectTransform cr = container.AddComponent<RectTransform>();
+            cr.anchorMin = new Vector2(0.5f, 1f);
+            cr.anchorMax = new Vector2(0.5f, 1f);
+            cr.pivot = new Vector2(0.5f, 0.5f);
+            cr.anchoredPosition = anchoredPos;
+            cr.sizeDelta = new Vector2(360f, 44f);
+
+            // Nút BGM (-95f)
+            CreateAudioPillButton(container.transform, new Vector2(-95f, 0f), "Btn_Toggle_BGM",
+                GetBgmButtonLabel(), new Color(0.18f, 0.38f, 0.52f, 1f), font, () =>
+                {
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.ToggleBGM();
+                        UpdateAudioButtonsVisual();
+                        AudioManager.Instance.PlayUIClick();
+                    }
+                }, out _bgmToggleText);
+
+            // Nút SFX (+95f)
+            CreateAudioPillButton(container.transform, new Vector2(95f, 0f), "Btn_Toggle_SFX",
+                GetSfxButtonLabel(), new Color(0.48f, 0.32f, 0.16f, 1f), font, () =>
+                {
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.ToggleSFX();
+                        UpdateAudioButtonsVisual();
+                        AudioManager.Instance.PlayUIClick();
+                    }
+                }, out _sfxToggleText);
+        }
+
+        private void CreateAudioPillButton(Transform parent, Vector2 anchoredPos, string name, string label, Color bgColor, Font font, UnityEngine.Events.UnityAction onClickAction, out Text outLabel)
+        {
+            GameObject btnObj = new GameObject(name);
+            btnObj.transform.SetParent(parent, false);
+            RectTransform br = btnObj.AddComponent<RectTransform>();
+            br.anchorMin = new Vector2(0.5f, 0.5f);
+            br.anchorMax = new Vector2(0.5f, 0.5f);
+            br.pivot = new Vector2(0.5f, 0.5f);
+            br.anchoredPosition = anchoredPos;
+            br.sizeDelta = new Vector2(170f, 42f);
 
             Image img = btnObj.AddComponent<Image>();
             img.color = bgColor;
@@ -633,11 +728,31 @@ namespace KingdomDefense.UI
             Text txt = textObj.AddComponent<Text>();
             txt.font = font;
             txt.text = label;
-            txt.fontSize = 17;
+            txt.fontSize = 15;
             txt.fontStyle = FontStyle.Bold;
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.raycastTarget = false;
+
+            outLabel = txt;
+        }
+
+        public string GetBgmButtonLabel()
+        {
+            bool isMuted = AudioManager.Instance != null && (AudioManager.Instance.IsMuted || AudioManager.Instance.IsBgmMuted);
+            return isMuted ? "🔇 BGM: TẮT" : "🎵 BGM: BẬT";
+        }
+
+        public string GetSfxButtonLabel()
+        {
+            bool isMuted = AudioManager.Instance != null && (AudioManager.Instance.IsMuted || AudioManager.Instance.IsSfxMuted);
+            return isMuted ? "🔇 SFX: TẮT" : "🔊 SFX: BẬT";
+        }
+
+        public void UpdateAudioButtonsVisual()
+        {
+            if (_bgmToggleText != null) _bgmToggleText.text = GetBgmButtonLabel();
+            if (_sfxToggleText != null) _sfxToggleText.text = GetSfxButtonLabel();
         }
 
         /// <summary>
@@ -1178,6 +1293,8 @@ namespace KingdomDefense.UI
                 Time.timeScale = _isFastForward ? 2.0f : 1.0f;
             }
 
+            AudioManager.Instance?.PlayUIClick();
+
             if (speedText != null)
             {
                 speedText.text = _isFastForward ? "2X" : "1X";
@@ -1256,11 +1373,13 @@ namespace KingdomDefense.UI
         public void TogglePause()
         {
             _isPaused = !_isPaused;
+            AudioManager.Instance?.PlayUIClick();
 
             if (_isPaused)
             {
                 Time.timeScale = 0f;
                 EnsurePauseOverlay();
+                UpdateAudioButtonsVisual();
                 if (pauseOverlay != null)
                 {
                     pauseOverlay.SetActive(true);

@@ -2,6 +2,7 @@ using UnityEngine;
 using KingdomDefense.UI;
 using KingdomDefense.Towers;
 using KingdomDefense.Skills;
+using KingdomDefense.Audio;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -184,6 +185,8 @@ namespace KingdomDefense.Build
                 _selectedTowerType = type;
             }
 
+            AudioManager.Instance?.PlayUIClick();
+
             Debug.Log($"[BuildManager] Đang chọn công trình: {_selectedTowerType}");
 
             if (GameHUD.Instance != null)
@@ -338,6 +341,7 @@ namespace KingdomDefense.Build
             }
 
             Debug.Log($"[BuildManager] Đã xây thành công {towerTypeToBuild} tại {buildPos}! (-{cost} Vàng)");
+            AudioManager.Instance?.PlayTowerPlaced();
 
             // Bỏ chọn sau khi xây xong
             SelectTowerToBuild(TowerType.None);
