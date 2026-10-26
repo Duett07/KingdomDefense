@@ -4,6 +4,7 @@ using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -335,8 +336,9 @@ namespace KingdomDefense.Towers
                 }
             }
 
-            // Hiệu ứng sóng băng giá tỏa ra
+            // Hiệu ứng sóng băng giá tỏa ra & âm thanh tinh thể băng
             SpawnBlizzardPulseFX();
+            AudioManager.Instance?.PlayFrostFreeze();
 
             if (hitAny && _crystalCore != null)
             {

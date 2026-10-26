@@ -3,6 +3,7 @@ using UnityEngine;
 using KingdomDefense.Enemy;
 using KingdomDefense.Core;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -219,8 +220,9 @@ namespace KingdomDefense.Towers
                 StartCoroutine(RecoilRoutine());
             }
 
-            // 4. Bụi khói bắn ra tại nòng
+            // 4. Bụi khói bắn ra tại nòng & âm thanh đại bác khai hỏa
             SpawnMuzzleBlast(spawnPos);
+            AudioManager.Instance?.PlayCannonFire();
         }
 
         /// <summary>

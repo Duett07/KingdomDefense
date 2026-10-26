@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KingdomDefense.Waypoints;
 using KingdomDefense.UI;
+using KingdomDefense.Audio;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -194,6 +195,9 @@ namespace KingdomDefense.Enemy
             {
                 GameHUD.Instance.SetWave(_currentWaveIndex, maxWaves);
             }
+
+            // Tiếng tù và chiến trận báo hiệu quái xuất quân
+            AudioManager.Instance?.PlayWaveHorn();
 
             WaveDefinition currentWaveDef = waveConfig != null ? waveConfig.GetWave(_currentWaveIndex) : null;
 

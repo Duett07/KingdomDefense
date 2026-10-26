@@ -4,6 +4,7 @@ using UnityEngine;
 using KingdomDefense.Core;
 using KingdomDefense.Cameras;
 using KingdomDefense.VFX;
+using KingdomDefense.Audio;
 
 namespace KingdomDefense.Towers
 {
@@ -214,9 +215,10 @@ namespace KingdomDefense.Towers
                 }
             }
 
-            // 2. Tạo hiệu ứng nổ khói lửa hoành tráng & rung màn hình
+            // 2. Tạo hiệu ứng nổ khói lửa hoành tráng & rung màn hình & âm thanh nổ
             SpawnExplosionFX(explosionCenter);
             CameraController.ShakeCannonExplosion();
+            AudioManager.Instance?.PlayCannonExplosion();
 
             // 3. Trả về ObjectPool
             Despawn();
