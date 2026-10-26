@@ -376,17 +376,23 @@ namespace KingdomDefense.UI
         private void OnUpgradeClicked()
         {
             if (_selectedTower == null) return;
+            if (_upgradeButton != null) _upgradeButton.interactable = false;
 
             bool success = _selectedTower.TryUpgrade();
             if (success)
             {
                 RefreshUI();
             }
+            else
+            {
+                UpdateUpgradeButtonState();
+            }
         }
 
         private void OnSellClicked()
         {
             if (_selectedTower == null) return;
+            if (_sellButton != null) _sellButton.interactable = false;
 
             Tower towerToSell = _selectedTower;
             Deselect();
