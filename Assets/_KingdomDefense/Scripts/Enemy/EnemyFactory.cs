@@ -177,7 +177,7 @@ namespace KingdomDefense.Enemy
             mv.Speed = 2.6f;
 
             Enemy enemy = root.AddComponent<Enemy>();
-            enemy.ConfigureStats("Orc Warrior", 240f, 0.25f, 0f, 25, false, false, 0f);
+            enemy.ConfigureStats("Orc Warrior", 220f, 0.25f, 0f, 25, false, false, 0f);
         }
 
         // 3. STONE GOLEM: Máu cực lớn (950 HP), 1.2 m/s, 60% Giáp, Kháng nổ AoE 50%
@@ -213,7 +213,7 @@ namespace KingdomDefense.Enemy
             mv.Speed = 1.2f;
 
             Enemy enemy = root.AddComponent<Enemy>();
-            enemy.ConfigureStats("Stone Golem", 950f, 0.60f, 0f, 60, true, false, 0f);
+            enemy.ConfigureStats("Stone Golem", 850f, 0.60f, 0f, 60, true, false, 0f);
         }
 
         // 4. DARK BAT: Bay ở độ cao 2.8m, 3.8 m/s, 120 HP, bỏ qua tháp pháo mặt đất
@@ -281,7 +281,7 @@ namespace KingdomDefense.Enemy
             mv.Speed = 3.8f;
 
             Enemy enemy = root.AddComponent<Enemy>();
-            enemy.ConfigureStats("Dark Bat", 120f, 0f, 0f, 35, false, true, 2.8f);
+            enemy.ConfigureStats("Dark Bat", 110f, 0f, 0f, 35, false, true, 2.8f);
         }
 
         // 5. BOSS ORCUS: Trùm cuối 3800 HP, 40% Giáp, 30% Kháng Phép, kỹ năng Dậm Đất 6.0m
@@ -335,7 +335,7 @@ namespace KingdomDefense.Enemy
             mv.Speed = 1.0f;
 
             BossOrcus boss = root.AddComponent<BossOrcus>();
-            boss.ConfigureStats("Ma Vương Orcus", 3800f, 0.40f, 0.30f, 250, true, false, 0f);
+            boss.ConfigureStats("Ma Vương Orcus", 3600f, 0.35f, 0.25f, 250, true, false, 0f);
         }
 
         #endregion

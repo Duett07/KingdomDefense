@@ -53,6 +53,7 @@ namespace KingdomDefense.Enemy
         private float _waveCountdown;
         private int _currentWaveIndex = 0;
         private bool _isSpawningWave = false;
+        private int _lastBonusWaveAwarded = 0;
 
         public int CurrentWaveIndex => _currentWaveIndex;
         public float WaveCountdown => _waveCountdown;
@@ -120,6 +121,8 @@ namespace KingdomDefense.Enemy
 
         private void Update()
         {
+            CheckWaveClearBonus();
+
             int maxWaves = TotalWaves;
             if (_isSpawningWave || _currentWaveIndex >= maxWaves) return;
 
@@ -131,6 +134,53 @@ namespace KingdomDefense.Enemy
             {
                 _waveCountdown -= Time.deltaTime;
             }
+        }
+
+        /// <summary>
+        /// Kiểm tra và trao thưởng Vàng khi quét sạch toàn bộ quái vật của một Wave.
+        /// </summary>
+        private void CheckWaveClearBonus()
+        {
+            if (_currentWaveIndex > 0 && !_isSpawningWave && _lastBonusWaveAwarded < _currentWaveIndex)
+            {
+                if (Enemy.ActiveEnemies == null || Enemy.ActiveEnemies.Count == 0)
+                {
+                    _lastBonusWaveAwarded = _currentWaveIndex;
+                    int bonusGold = 50 + (_currentWaveIndex * 15);
+                    if (UI.GameHUD.Instance != null)
+                    {
+                        UI.GameHUD.Instance.AddGold(bonusGold);
+                        UI.GameHUD.Instance.ShowNotification($"QUÉT SẠCH WAVE {_currentWaveIndex}! +{bonusGold} VÀNG", new Color(1.0f, 0.85f, 0.20f));
+                    }
+                    Audio.AudioManager.Instance?.PlayTowerPlaced();
+                    Debug.Log($"<color=#FFD700>[WaveSpawner] QUÉT SẠCH WAVE {_currentWaveIndex}! Thưởng vượt ải: +{bonusGold} Vàng!</color>");
+
+                    if (_currentWaveIndex < TotalWaves && _waveCountdown > 2.5f)
+                    {
+                        _waveCountdown = 2.5f;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Kích hoạt ngay đợt quái tiếp theo (Hỗ trợ Debug / Kiểm thử cân bằng nhanh).
+        /// </summary>
+        public void ForceNextWave()
+        {
+            if (_currentWaveIndex >= TotalWaves) return;
+            StopAllCoroutines();
+            _isSpawningWave = false;
+            _waveCountdown = 0f;
+            StartCoroutine(SpawnWaveRoutine());
+        }
+
+        /// <summary>
+        /// Bỏ qua thời gian đếm ngược để ra quái ngay lập tức.
+        /// </summary>
+        public void SkipCountdown()
+        {
+            _waveCountdown = 0f;
         }
 
         /// <summary>

@@ -30,8 +30,8 @@ namespace KingdomDefense.Enemy
 
         private void Awake()
         {
-            // Cấu hình thông số chuẩn Boss Orcus theo Bảng 2.1
-            ConfigureStats("Ma Vương Orcus", 3800f, 0.40f, 0.30f, 250, true);
+            // Cấu hình thông số chuẩn Boss Orcus theo Bảng 2.1 (Cân bằng lại 3600 HP, 35% giáp, 25% kháng phép)
+            ConfigureStats("Ma Vương Orcus", 3600f, 0.35f, 0.25f, 250, true);
             _slamCountdown = 4.0f; // Đợt dậm đất đầu tiên sau 4 giây xuất trận
         }
 

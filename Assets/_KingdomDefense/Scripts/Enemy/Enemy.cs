@@ -107,6 +107,21 @@ namespace KingdomDefense.Enemy
             ActiveEnemies.Remove(this);
         }
 
+        /// <summary>
+        /// Tiêu diệt toàn bộ quái vật đang hoạt động trên chiến trường (hỗ trợ kiểm thử cân bằng và Debug).
+        /// </summary>
+        public static void KillAllActiveEnemies()
+        {
+            var enemiesToKill = new List<Enemy>(ActiveEnemies);
+            for (int i = 0; i < enemiesToKill.Count; i++)
+            {
+                if (enemiesToKill[i] != null && !enemiesToKill[i].IsDead)
+                {
+                    enemiesToKill[i].TakeDamage(99999f, DamageType.Pure);
+                }
+            }
+        }
+
         private void Awake()
         {
             _movement = GetComponent<EnemyMovement>();

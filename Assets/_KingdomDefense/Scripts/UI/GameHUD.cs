@@ -7,6 +7,7 @@ using KingdomDefense.Core;
 using KingdomDefense.Cameras;
 using KingdomDefense.Skills;
 using KingdomDefense.Audio;
+using KingdomDefense.Enemy;
 
 namespace KingdomDefense.UI
 {
@@ -88,6 +89,8 @@ namespace KingdomDefense.UI
         private Coroutine _livesPunchRoutine;
         private Coroutine _wavePunchRoutine;
         private bool _isCriticalLives = false;
+        private Text _notificationText;
+        private Coroutine _notificationRoutine;
 
         public int CurrentLives => _currentLives;
         public int CurrentGold => _currentGold;
@@ -880,6 +883,10 @@ namespace KingdomDefense.UI
             {
                 ToggleFastForward();
             }
+
+#if UNITY_EDITOR
+            HandleDebugHotkeys();
+#endif
         }
 
         private void SetupButtonListeners()
@@ -1451,5 +1458,141 @@ namespace KingdomDefense.UI
             UpdateManaDisplay();
             UpdateTowerButtonsAvailability();
         }
+
+        #region --- NOTIFICATION & BALANCE DEBUG TOOLS ---
+
+        /// <summary>
+        /// Hiển thị thông báo biểu ngữ nổi bật (Wave Clear, thưởng vàng, debug info) trên đỉnh màn hình.
+        /// </summary>
+        public void ShowNotification(string message, Color textColor)
+        {
+            EnsureNotificationText();
+            if (_notificationText == null) return;
+
+            if (_notificationRoutine != null) StopCoroutine(_notificationRoutine);
+            _notificationRoutine = StartCoroutine(NotificationRoutine(message, textColor));
+        }
+
+        private void EnsureNotificationText()
+        {
+            if (_notificationText != null) return;
+
+            GameObject notifObj = new GameObject("HUD_Notification_Banner");
+            notifObj.transform.SetParent(transform, false);
+
+            RectTransform rt = notifObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0f, -72f);
+            rt.sizeDelta = new Vector2(600f, 44f);
+
+            _notificationText = notifObj.AddComponent<Text>();
+            Font f = (livesText != null && livesText.font != null)
+                ? livesText.font
+                : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Font.CreateDynamicFontFromOSFont(new[] { "Arial", "Liberation Sans" }, 20);
+            _notificationText.font = f;
+            _notificationText.fontSize = 20;
+            _notificationText.fontStyle = FontStyle.Bold;
+            _notificationText.alignment = TextAnchor.MiddleCenter;
+            _notificationText.raycastTarget = false;
+
+            Outline outline = notifObj.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.95f);
+            outline.effectDistance = new Vector2(1.8f, -1.8f);
+
+            notifObj.SetActive(false);
+        }
+
+        private IEnumerator NotificationRoutine(string message, Color textColor)
+        {
+            _notificationText.text = message;
+            _notificationText.color = textColor;
+            _notificationText.gameObject.SetActive(true);
+
+            Transform target = _notificationText.transform;
+            target.localScale = Vector3.one * 1.30f;
+
+            float punchTime = 0.16f;
+            float elapsed = 0f;
+            while (elapsed < punchTime)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                target.localScale = Vector3.Lerp(Vector3.one * 1.30f, Vector3.one, elapsed / punchTime);
+                yield return null;
+            }
+            target.localScale = Vector3.one;
+
+            yield return new WaitForSecondsRealtime(1.3f);
+
+            float fadeTime = 0.45f;
+            elapsed = 0f;
+            Color baseCol = textColor;
+            while (elapsed < fadeTime)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                baseCol.a = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
+                _notificationText.color = baseCol;
+                yield return null;
+            }
+
+            _notificationText.gameObject.SetActive(false);
+            _notificationRoutine = null;
+        }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Bộ phím tắt kiểm thử cân bằng nhanh (Quick-Balance Debug Hotkeys):
+        /// [G]: Nhận ngay +500 Vàng
+        /// [M]: Hồi đầy 100 Mana
+        /// [K]: Tiêu diệt toàn bộ quái vật đang có trên bản đồ
+        /// [L]: Hồi đầy 20 Mạng thành trì
+        /// [N]: Kích hoạt ngay đợt quái tiếp theo
+        /// </summary>
+        private void HandleDebugHotkeys()
+        {
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.G))
+                {
+                    AddGold(500);
+                    ShowNotification("⚡ DEBUG: +500 VÀNG!", new Color(1.0f, 0.88f, 0.20f));
+                    AudioManager.Instance?.PlayTowerPlaced();
+                }
+
+                if (Input.GetKeyDown(KeyCode.M))
+                {
+                    AddMana(100f);
+                    ShowNotification("⚡ DEBUG: HỒI ĐẦY 100 MANA!", new Color(0.35f, 0.88f, 1.0f));
+                    AudioManager.Instance?.PlayMagicZap();
+                }
+
+                if (Input.GetKeyDown(KeyCode.K))
+                {
+                    Enemy.Enemy.KillAllActiveEnemies();
+                    ShowNotification("⚡ DEBUG: TIÊU DIỆT TOÀN BỘ QUÁI!", new Color(1.0f, 0.35f, 0.35f));
+                    AudioManager.Instance?.PlayMeteorImpact();
+                }
+
+                if (Input.GetKeyDown(KeyCode.L))
+                {
+                    SetLives(20);
+                    ShowNotification("⚡ DEBUG: HỒI ĐẦY 20 MẠNG!", new Color(0.40f, 1.0f, 0.40f));
+                }
+
+                if (Input.GetKeyDown(KeyCode.N))
+                {
+                    if (WaveSpawner.Instance != null)
+                    {
+                        WaveSpawner.Instance.ForceNextWave();
+                        ShowNotification($"⚡ DEBUG: KÍCH HOẠT WAVE {WaveSpawner.Instance.CurrentWaveIndex}!", new Color(0.85f, 0.70f, 1.0f));
+                    }
+                }
+            }
+            catch (System.InvalidOperationException) { }
+        }
+#endif
+
+        #endregion
     }
 }
