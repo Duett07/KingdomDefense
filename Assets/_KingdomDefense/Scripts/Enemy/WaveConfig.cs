@@ -308,68 +308,69 @@ namespace KingdomDefense.Enemy
                     }
                 },
 
-                // Wave 7: 25 Dark Bat, 0.5s/con
+                // Wave 7: 22 Dark Bat, 0.55s/con
                 new WaveDefinition
                 {
                     waveNumber = 7,
                     waveTitle = "Wave 7: Bão Dơi Quỷ (Air Swarm)",
                     tacticsDescription = "Áp lực không phận cực lớn, cần Tháp Băng hỗ trợ.",
-                    timeBeforeWave = 8.0f,
-                    spawnRate = 0.5f,
+                    timeBeforeWave = 7.0f,
+                    spawnRate = 0.55f,
                     spawnMode = SpawnOrderMode.Sequential,
                     groups = new List<WaveGroup>
                     {
-                        new WaveGroup(EnemyType.DarkBat, 25)
+                        new WaveGroup(EnemyType.DarkBat, 22)
                     }
                 },
 
-                // Wave 8: 30 Goblin, 15 Orc, 5 Golem, 0.4s/con
+                // Wave 8: 25 Goblin, 14 Orc, 4 Golem, 0.45s/con
                 new WaveDefinition
                 {
                     waveNumber = 8,
                     waveTitle = "Wave 8: Biển Quái Vật (Massive Horde)",
                     tacticsDescription = "Quái tràn ngập bản đồ, cần phối hợp Tháp Băng + Đại Bác.",
-                    timeBeforeWave = 8.0f,
-                    spawnRate = 0.4f,
+                    timeBeforeWave = 7.5f,
+                    spawnRate = 0.45f,
                     spawnMode = SpawnOrderMode.Interleaved,
                     groups = new List<WaveGroup>
                     {
-                        new WaveGroup(EnemyType.GoblinRunner, 30),
-                        new WaveGroup(EnemyType.OrcWarrior, 15),
-                        new WaveGroup(EnemyType.StoneGolem, 5)
+                        new WaveGroup(EnemyType.GoblinRunner, 25),
+                        new WaveGroup(EnemyType.OrcWarrior, 14),
+                        new WaveGroup(EnemyType.StoneGolem, 4)
                     }
                 },
 
-                // Wave 9: 8 Golem + 20 Orc, 1.0s/con
+                // Wave 9: 6 Golem, 18 Orc, 8 Dark Bat, 0.75s/con
                 new WaveDefinition
                 {
                     waveNumber = 9,
                     waveTitle = "Wave 9: Đội Cận Vệ Hoàng Gia Đen",
                     tacticsDescription = "Cực kỳ trâu bò, người chơi phải kích hoạt Mưa Thiên Thạch.",
                     timeBeforeWave = 8.0f,
-                    spawnRate = 1.0f,
+                    spawnRate = 0.75f,
                     spawnMode = SpawnOrderMode.Interleaved,
                     groups = new List<WaveGroup>
                     {
-                        new WaveGroup(EnemyType.StoneGolem, 8),
-                        new WaveGroup(EnemyType.OrcWarrior, 20)
+                        new WaveGroup(EnemyType.StoneGolem, 6),
+                        new WaveGroup(EnemyType.OrcWarrior, 18),
+                        new WaveGroup(EnemyType.DarkBat, 8)
                     }
                 },
 
-                // Wave 10: 1 Boss Orcus + 15 Orc + 6 Golem + 10 Dơi, 1.2s/con
+                // Wave 10: 1 Boss Orcus + 12 Orc + 5 Golem + 8 Dơi, 1.1s/con
                 new WaveDefinition
                 {
                     waveNumber = 10,
                     waveTitle = "Wave 10: BOSS WAVE - Orcus the Destroyer",
-                    tacticsDescription = "Trùm cuối có 3800 HP và skill choáng tháp. Đòi hỏi tổng lực phòng thủ.",
-                    timeBeforeWave = 10.0f,
-                    spawnRate = 1.2f,
+                    tacticsDescription = "Trùm cuối có 3600 HP và skill choáng tháp. Đòi hỏi tổng lực phòng thủ.",
+                    timeBeforeWave = 9.0f,
+                    spawnRate = 1.1f,
                     spawnMode = SpawnOrderMode.Sequential,
                     groups = new List<WaveGroup>
                     {
-                        new WaveGroup(EnemyType.OrcWarrior, 15),
-                        new WaveGroup(EnemyType.StoneGolem, 6),
-                        new WaveGroup(EnemyType.DarkBat, 10),
+                        new WaveGroup(EnemyType.OrcWarrior, 12),
+                        new WaveGroup(EnemyType.StoneGolem, 5),
+                        new WaveGroup(EnemyType.DarkBat, 8),
                         new WaveGroup(EnemyType.BossOrcus, 1, 3.0f) // Trùm cuối xuất trận oai nghiêm sau 3s delay
                     }
                 }
