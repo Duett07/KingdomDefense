@@ -94,6 +94,7 @@ namespace KingdomDefense.Map
         {
             EnsureWaveSpawner();
             EnsureObjectPool();
+            EnsurePerformanceOptimizer();
 
             // Nếu sa bàn đã được sinh trong Scene (MapGenerator đã có các GameObject con), giữ nguyên và không làm gì cả
             if (transform.childCount > 0)
@@ -127,6 +128,16 @@ namespace KingdomDefense.Map
             }
         }
 
+        private void EnsurePerformanceOptimizer()
+        {
+            if (Object.FindAnyObjectByType<KingdomDefense.Core.PerformanceOptimizer>() == null)
+            {
+                GameObject perfObj = new GameObject("PerformanceOptimizer");
+                perfObj.transform.SetParent(transform);
+                perfObj.AddComponent<KingdomDefense.Core.PerformanceOptimizer>();
+            }
+        }
+
         /// <summary>
         /// Tạo toàn bộ Sa bàn & Giao diện chuẩn phong cách Kingdom Rush bằng 3D Assets KayKit.
         /// </summary>
@@ -153,9 +164,45 @@ namespace KingdomDefense.Map
             GenerateDeadTrees();
             GenerateWaypoints();
             GenerateKingdomRushHUD();
+            OptimizeEnvironmentStaticBatching();
 
             Debug.Log("[MapGenerator] Đã tạo thành công Bản đồ Thung lũng & Thành trì khép kín bằng bộ 3D KayKit Medieval!");
         }
+
+        /// <summary>
+        /// Tối ưu hóa hiệu năng: Gom nhóm Mesh của toàn bộ môi trường tĩnh để giảm tối đa Draw Calls.
+        /// </summary>
+        [ContextMenu("Optimize & Batch Environment")]
+        public void OptimizeEnvironmentStaticBatching()
+        {
+            Transform[] staticContainers = new Transform[] { terrainContainer, roadContainer, forestContainer, landmarksContainer };
+            int totalRenderers = 0;
+            foreach (Transform c in staticContainers)
+            {
+                if (c == null) continue;
+#if UNITY_EDITOR
+                SetStaticFlagsRecursively(c.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccludeeStatic);
+#endif
+                int count = c.GetComponentsInChildren<MeshRenderer>(true).Length;
+                if (count > 0)
+                {
+                    StaticBatchingUtility.Combine(c.gameObject);
+                    totalRenderers += count;
+                }
+            }
+            Debug.Log($"<color=#2ECC71>[MapGenerator]</color> Tối ưu hóa Static Batching thành công cho {totalRenderers} MeshRenderers!");
+        }
+
+#if UNITY_EDITOR
+        private void SetStaticFlagsRecursively(GameObject obj, StaticEditorFlags flags)
+        {
+            UnityEditor.GameObjectUtility.SetStaticEditorFlags(obj, flags);
+            foreach (Transform child in obj.transform)
+            {
+                SetStaticFlagsRecursively(child.gameObject, flags);
+            }
+        }
+#endif
 
         /// <summary>
         /// Xóa toàn bộ các thành phần cũ để làm mới.
