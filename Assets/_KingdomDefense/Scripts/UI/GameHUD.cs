@@ -53,18 +53,24 @@ namespace KingdomDefense.UI
         [SerializeField] private Button mageBtn;
         [SerializeField] private Button frostBtn;
         [SerializeField] private Button wallBtn;
+        [SerializeField] private Button knightBtn;
 
         [SerializeField] private Image archerHighlight;
         [SerializeField] private Image bombHighlight;
         [SerializeField] private Image mageHighlight;
         [SerializeField] private Image frostHighlight;
         [SerializeField] private Image wallHighlight;
+        [SerializeField] private Image knightHighlight;
 
         [SerializeField] private Text archerCostText;
         [SerializeField] private Text bombCostText;
         [SerializeField] private Text mageCostText;
         [SerializeField] private Text frostCostText;
         [SerializeField] private Text wallCostText;
+        [SerializeField] private Text knightCostText;
+
+        private float _knightCooldown = 0f;
+        private const float KNIGHT_COOLDOWN_TIME = 15f;
 
         [Header("--- NÚT ĐIỀU KHIỂN & TẠM DỪNG (PAUSE / SPEED) ---")]
         [SerializeField] private Button speedBtn;
@@ -241,21 +247,44 @@ namespace KingdomDefense.UI
                     bdRect.sizeDelta = new Vector2(920f, 125f);
                 }
 
+                // Loại bỏ / ẩn thẻ Tường Thành khỏi dock bottom theo yêu cầu
+                for (int i = 0; i < bdPanel.childCount; i++)
+                {
+                    Transform child = bdPanel.GetChild(i);
+                    string cName = child.name.ToLower();
+                    if (cName.Contains("tường") || cName.Contains("tuong") || cName.Contains("wall"))
+                    {
+                        child.gameObject.SetActive(false);
+                    }
+                }
+                wallBtn = null;
+                wallHighlight = null;
+                wallCostText = null;
+
                 int cardCount = 0;
                 for (int i = 0; i < bdPanel.childCount; i++)
                 {
-                    if (bdPanel.GetChild(i).name.StartsWith("Card_")) cardCount++;
+                    Transform c = bdPanel.GetChild(i);
+                    if (c.gameObject.activeSelf && c.name.StartsWith("Card_")) cardCount++;
                 }
 
                 float[] cardXPositions;
                 float cardWidth;
-                if (cardCount >= 5)
+                if (cardCount >= 6)
                 {
+                    bdRect.sizeDelta = new Vector2(1100f, 125f);
+                    cardXPositions = new float[] { -425f, -255f, -85f, 85f, 255f, 425f };
+                    cardWidth = 150f;
+                }
+                else if (cardCount >= 5)
+                {
+                    bdRect.sizeDelta = new Vector2(920f, 125f);
                     cardXPositions = new float[] { -340f, -170f, 0f, 170f, 340f };
                     cardWidth = 155f;
                 }
                 else
                 {
+                    bdRect.sizeDelta = new Vector2(750f, 125f);
                     cardXPositions = new float[] { -270f, -90f, 90f, 270f };
                     cardWidth = 170f;
                 }
@@ -264,7 +293,7 @@ namespace KingdomDefense.UI
                 for (int i = 0; i < bdPanel.childCount && cardIndex < cardXPositions.Length; i++)
                 {
                     Transform card = bdPanel.GetChild(i);
-                    if (card.name.StartsWith("Card_"))
+                    if (card.gameObject.activeSelf && card.name.StartsWith("Card_"))
                     {
                         RectTransform cr = card.GetComponent<RectTransform>();
                         if (cr != null)
@@ -411,9 +440,11 @@ namespace KingdomDefense.UI
                     }
                     else if (cardName.Contains("tường") || cardName.Contains("tuong") || cardName.Contains("wall"))
                     {
-                        if (wallBtn == null) wallBtn = btn;
-                        if (wallHighlight == null) wallHighlight = hlTr?.GetComponent<Image>();
-                        if (wallCostText == null) wallCostText = costTr?.GetComponent<Text>();
+                        // Thẻ Tường Thành đã loại bỏ khỏi dock bottom
+                        card.gameObject.SetActive(false);
+                        wallBtn = null;
+                        wallHighlight = null;
+                        wallCostText = null;
                     }
                 }
             }
@@ -499,15 +530,27 @@ namespace KingdomDefense.UI
         /// </summary>
         public void EnsurePauseOverlay()
         {
-            if (pauseOverlay != null) return;
-
-            Transform existing = transform.Find("Pause_Overlay");
-            if (existing != null)
+            if (pauseOverlay == null)
             {
-                pauseOverlay = existing.gameObject;
-                return;
+                Transform existing = transform.Find("Pause_Overlay");
+                if (existing != null)
+                {
+                    pauseOverlay = existing.gameObject;
+                }
             }
 
+            if (pauseOverlay == null)
+            {
+                BuildPauseOverlay();
+            }
+            else
+            {
+                BindPauseModalButtons(pauseOverlay);
+            }
+        }
+
+        private void BuildPauseOverlay()
+        {
             Font defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
 
             // 1. Backdrop Overlay (Lớp phủ làm mờ nền màn hình)
@@ -587,16 +630,47 @@ namespace KingdomDefense.UI
                 if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
                 else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             });
-            CreateModalButton(centerBox.transform, new Vector2(0f, -275f), "🏠  VỀ MENU / THOÁT", new Color(0.22f, 0.26f, 0.34f, 1f), defaultFont, () => {
-                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
-                else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-            });
+            CreateModalButton(centerBox.transform, new Vector2(0f, -275f), "🏠  VỀ MENU / THOÁT", new Color(0.22f, 0.26f, 0.34f, 1f), defaultFont, () => QuitOrReturnToMenu());
 
             // 6. Thanh điều khiển Âm thanh nhanh (BGM & SFX Toggles)
             CreateAudioToggleButtons(centerBox.transform, new Vector2(0f, -345f), defaultFont);
 
             pauseOverlay = overlayObj;
             pauseOverlay.SetActive(false);
+        }
+
+        private void BindPauseModalButtons(GameObject overlay)
+        {
+            if (overlay == null) return;
+            Transform panelTr = overlay.transform.Find("PauseModal_Panel");
+            if (panelTr == null) return;
+
+            // Gán lại chính xác sự kiện cho nút Về Menu / Thoát
+            Button btnQuit = panelTr.Find("Btn_VỀ_MENU__THOÁT")?.GetComponent<Button>();
+            if (btnQuit != null)
+            {
+                btnQuit.onClick.RemoveAllListeners();
+                btnQuit.onClick.AddListener(() => QuitOrReturnToMenu());
+            }
+
+            // Gán lại cho nút Tiếp tục
+            Button btnResume = panelTr.Find("Btn_TIẾP_TỤC_RESUME")?.GetComponent<Button>();
+            if (btnResume != null)
+            {
+                btnResume.onClick.RemoveAllListeners();
+                btnResume.onClick.AddListener(() => TogglePause());
+            }
+
+            // Gán lại cho nút Chơi lại
+            Button btnRestart = panelTr.Find("Btn_CHƠI_LẠI_TRẬN_RESTART")?.GetComponent<Button>();
+            if (btnRestart != null)
+            {
+                btnRestart.onClick.RemoveAllListeners();
+                btnRestart.onClick.AddListener(() => {
+                    if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+                    else UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+                });
+            }
         }
 
         private void CreateModalButton(Transform parent, Vector2 anchoredPos, string label, Color bgColor, Font font, UnityEngine.Events.UnityAction onClickAction)
@@ -809,7 +883,28 @@ namespace KingdomDefense.UI
                 UpdateManaDisplay();
             }
 
-            // Lắng nghe phím tắt điều khiển: [Esc]/[P] cho Pause, [Tab] cho 1X/2X Speed
+            // Đếm ngược thời gian hồi chiêu xuất lính Hiệp Sĩ Hoàng Gia
+            if (_knightCooldown > 0f && !_isPaused)
+            {
+                _knightCooldown -= Time.deltaTime;
+                if (knightCostText != null)
+                {
+                    knightCostText.text = $"{Mathf.CeilToInt(_knightCooldown)}s";
+                    knightCostText.color = new Color(0.95f, 0.45f, 0.2f);
+                }
+                if (knightBtn != null && knightBtn.interactable) knightBtn.interactable = false;
+            }
+            else if (_knightCooldown <= 0f)
+            {
+                if (knightCostText != null && knightCostText.text != "SẴN SÀNG")
+                {
+                    knightCostText.text = "SẴN SÀNG";
+                    knightCostText.color = new Color(0.25f, 0.90f, 0.4f);
+                }
+                if (knightBtn != null && !knightBtn.interactable) knightBtn.interactable = true;
+            }
+
+            // Lắng nghe phím tắt điều khiển: [Esc]/[P] cho Pause, [Tab] cho 1X/2X Speed, [R]/[Space] xuất lính
             HandleControlHotkeys();
         }
 
@@ -884,6 +979,21 @@ namespace KingdomDefense.UI
                 ToggleFastForward();
             }
 
+            // Phím tắt [R] để triệu hồi Hiệp sĩ hoàng gia
+            bool rPressed = false;
+#if ENABLE_INPUT_SYSTEM
+            if (UnityEngine.InputSystem.Keyboard.current != null)
+            {
+                rPressed = UnityEngine.InputSystem.Keyboard.current.rKey.wasPressedThisFrame;
+            }
+#else
+            rPressed = Input.GetKeyDown(KeyCode.R);
+#endif
+            if (rPressed)
+            {
+                OnSummonKnightClicked();
+            }
+
 #if UNITY_EDITOR
             HandleDebugHotkeys();
 #endif
@@ -922,10 +1032,42 @@ namespace KingdomDefense.UI
                 frostBtn.onClick.RemoveAllListeners();
                 frostBtn.onClick.AddListener(() => OnSelectTower(TowerType.Frost));
             }
-            if (wallBtn != null)
+            if (wallBtn != null && wallBtn.gameObject.activeInHierarchy)
             {
                 wallBtn.onClick.RemoveAllListeners();
                 wallBtn.onClick.AddListener(() => OnSelectTower(TowerType.Wall));
+            }
+            if (knightBtn != null)
+            {
+                knightBtn.onClick.RemoveAllListeners();
+                knightBtn.onClick.AddListener(OnSummonKnightClicked);
+            }
+        }
+
+        /// <summary>
+        /// Người chơi chủ động bấm nút trên Bottom Dock để xuất 1 Hiệp sĩ hoàng gia.
+        /// </summary>
+        public void OnSummonKnightClicked()
+        {
+            if (_knightCooldown > 0f)
+            {
+                ShowNotification($"Hiệp sĩ đang hồi chiêu ({Mathf.CeilToInt(_knightCooldown)}s)...", new Color(1.0f, 0.45f, 0.45f));
+                return;
+            }
+
+            if (Allies.CastleBarracks.Instance != null)
+            {
+                var knight = Allies.CastleBarracks.Instance.SpawnPlayerKnight();
+                if (knight != null)
+                {
+                    _knightCooldown = KNIGHT_COOLDOWN_TIME;
+                    ShowNotification("⚔️ HIỆP SĨ XUẤT TRẬN! Hành quân về Cổng Thành Quái!", new Color(0.40f, 0.90f, 1.0f));
+                    AudioManager.Instance?.PlayTowerPlaced();
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GameHUD] Không tìm thấy CastleBarracks trong Scene!");
             }
         }
 
@@ -1228,7 +1370,10 @@ namespace KingdomDefense.UI
             SetButtonState(bombBtn, bombCostText, gold >= BuildManager.Instance.BombCost);
             SetButtonState(mageBtn, mageCostText, gold >= BuildManager.Instance.MageCost);
             SetButtonState(frostBtn, frostCostText, gold >= BuildManager.Instance.FrostCost);
-            SetButtonState(wallBtn, wallCostText, gold >= BuildManager.Instance.WallCost);
+            if (wallBtn != null && wallBtn.gameObject.activeInHierarchy)
+            {
+                SetButtonState(wallBtn, wallCostText, gold >= BuildManager.Instance.WallCost);
+            }
 
             // Trường hợp biên (Edge Case 1): Nếu đang chọn tháp mà số vàng bị hụt xuống dưới chi phí mua, tự động hủy chọn
             if (BuildManager.Instance.SelectedTowerType != TowerType.None && !BuildManager.Instance.HasEnoughMoney(BuildManager.Instance.SelectedTowerType))
@@ -1420,6 +1565,47 @@ namespace KingdomDefense.UI
             if (pauseOverlay != null) pauseOverlay.SetActive(false);
             UpdatePauseVisuals();
             OnPauseToggled?.Invoke(false);
+        }
+
+        /// <summary>
+        /// Xử lý khi người chơi bấm nút "VỀ MENU / THOÁT":
+        /// - Đặt lại Time.timeScale = 1f
+        /// - Đóng Pause Modal
+        /// - Trong Unity Editor: Dừng chế độ Play Mode.
+        /// - Trong bản Build độc lập (Windows .exe / Android APK): Thoát ứng dụng ra hệ điều hành.
+        /// </summary>
+        public void QuitOrReturnToMenu()
+        {
+            Debug.Log("[GameHUD] Người chơi chọn VỀ MENU / THOÁT...");
+            Time.timeScale = 1f;
+
+            if (pauseOverlay != null)
+            {
+                pauseOverlay.SetActive(false);
+            }
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.QuitGame();
+                return;
+            }
+
+            // Fallback nếu không có GameManager trong Scene
+            if (UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings > 1)
+            {
+                string firstScenePath = UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(0);
+                if (!string.IsNullOrEmpty(firstScenePath) && firstScenePath.ToLower().Contains("menu"))
+                {
+                    UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+                    return;
+                }
+            }
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         /// <summary>

@@ -545,7 +545,7 @@ namespace KingdomDefense.Core
 
             Button menuBtn = menuBtnObj.AddComponent<Button>();
             menuBtn.targetGraphic = menuImg;
-            menuBtn.onClick.AddListener(RestartLevel); // Tải lại màn chơi
+            menuBtn.onClick.AddListener(QuitGame); // Thoát game / về menu
 
             GameObject menuTextObj = new GameObject("Label");
             menuTextObj.transform.SetParent(menuBtnObj.transform, false);
@@ -582,6 +582,41 @@ namespace KingdomDefense.Core
 
             int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
             SceneManager.LoadScene(currentSceneIndex);
+        }
+
+        /// <summary>
+        /// Thoát trò chơi hoặc trở về Menu:
+        /// - Đặt lại Time.timeScale = 1f
+        /// - Trong Unity Editor: Dừng chế độ Play Mode.
+        /// - Trong bản Build (Windows .exe, Android APK): Thoát ứng dụng ra hệ điều hành.
+        /// </summary>
+        public void QuitGame()
+        {
+            Debug.Log("[GameManager] Đang thoát trò chơi...");
+
+            Time.timeScale = 1f;
+
+            if (Enemy.Enemy.ActiveEnemies != null)
+            {
+                Enemy.Enemy.ActiveEnemies.Clear();
+            }
+
+            // Nếu trong Build Settings có Scene Menu riêng (khác với scene hiện tại)
+            if (SceneManager.sceneCountInBuildSettings > 1)
+            {
+                string firstScenePath = SceneUtility.GetScenePathByBuildIndex(0);
+                if (!string.IsNullOrEmpty(firstScenePath) && firstScenePath.ToLower().Contains("menu"))
+                {
+                    SceneManager.LoadScene(0);
+                    return;
+                }
+            }
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         /// <summary>

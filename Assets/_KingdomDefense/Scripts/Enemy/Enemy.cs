@@ -57,6 +57,16 @@ namespace KingdomDefense.Enemy
         [Tooltip("Độ cao bay tính từ mặt đất")]
         [SerializeField] private float flightHeight = 2.8f;
 
+        [Header("--- THIẾT LẬP CẬN CHIẾN KHI GIAO TRANH VỚI LÍNH ---")]
+        [Tooltip("Sát thương cận chiến quái gây ra cho lính chặn đường")]
+        [SerializeField] private float attackDamage = 15f;
+        [Tooltip("Tốc độ đánh (giây giữa mỗi đòn đánh)")]
+        [SerializeField] private float attackRate = 1.0f;
+
+        private float _lastAttackTime = 0f;
+        public float LastAttackTime => _lastAttackTime;
+        public void RecordAttackTime(float time) => _lastAttackTime = time;
+
         public string EnemyName => enemyName;
         public float MaxHealth => maxHealth;
         public float CurrentHealth => _currentHealth;
@@ -68,6 +78,15 @@ namespace KingdomDefense.Enemy
         public int GoldReward => goldReward;
         public bool IsDead => _isDead;
         public bool IsSlowed => _isSlowed;
+        public EnemyMovement Movement => _movement != null ? _movement : (_movement = GetComponent<EnemyMovement>());
+        public float AttackDamage => attackDamage;
+        public float AttackRate => attackRate;
+
+        public void SetMeleeStats(float damage, float rate = 1.0f)
+        {
+            attackDamage = damage;
+            attackRate = rate;
+        }
 
         public void SetFlying(bool flying, float height = 2.8f)
         {
@@ -126,11 +145,13 @@ namespace KingdomDefense.Enemy
         {
             _movement = GetComponent<EnemyMovement>();
             _currentHealth = maxHealth;
+            EnsureHealthBarExists();
+        }
 
-            if (showHealthBar)
-            {
-                CreateSimpleHealthBar();
-            }
+        private void Start()
+        {
+            EnsureHealthBarExists();
+            UpdateHealthBar();
         }
 
         private void Update()
@@ -147,52 +168,119 @@ namespace KingdomDefense.Enemy
 
         private void LateUpdate()
         {
-            // Luôn hướng thanh máu về phía Camera
-            if (_healthBarContainer != null && Camera.main != null)
+            // Luôn hướng thanh máu về phía Camera và giữ kích thước hiển thị cố định trong không gian thế giới
+            if (_healthBarContainer != null)
             {
-                _healthBarContainer.rotation = Camera.main.transform.rotation;
+                if (Camera.main != null)
+                {
+                    _healthBarContainer.rotation = Camera.main.transform.rotation;
+                }
+
+                Vector3 pScale = transform.localScale;
+                float invX = pScale.x > 0.001f ? (1f / pScale.x) : 1f;
+                float invY = pScale.y > 0.001f ? (1f / pScale.y) : 1f;
+                float invZ = pScale.z > 0.001f ? (1f / pScale.z) : 1f;
+                _healthBarContainer.localScale = new Vector3(invX, invY, invZ);
+
+                float worldHeight = GetHealthBarWorldHeight();
+                _healthBarContainer.localPosition = new Vector3(0f, worldHeight * invY, 0f);
+            }
+        }
+
+        private float GetHealthBarWorldHeight()
+        {
+            if (isFlying) return 1.05f;
+            if (maxHealth >= 1000f) return 2.80f; // Boss Orcus
+            if (maxHealth >= 300f) return 1.95f;  // Stone Golem
+            return 1.35f;                         // Quái thường
+        }
+
+        /// <summary>
+        /// Đảm bảo thanh máu 3D luôn tồn tại và hiển thị trực quan cho mọi quái vật.
+        /// </summary>
+        public void EnsureHealthBarExists()
+        {
+            if (!showHealthBar)
+            {
+                if (_healthBarContainer != null) _healthBarContainer.gameObject.SetActive(false);
+                return;
+            }
+
+            if (_healthBarContainer == null || _healthBarFill == null)
+            {
+                CreateSimpleHealthBar();
+            }
+
+            if (_healthBarContainer != null)
+            {
+                _healthBarContainer.gameObject.SetActive(true);
             }
         }
 
         /// <summary>
-        /// Tạo thanh máu 3D nổi nhỏ gọn trên đầu quái vật (Quad billboard không phụ thuộc Canvas).
+        /// Tạo thanh máu 3D nổi nhỏ gọn trên đầu quái vật (dùng Cube mỏng vững chắc, Unlit solid material không phụ thuộc texture hay culling).
         /// </summary>
-        private void CreateSimpleHealthBar()
+        public void CreateSimpleHealthBar()
         {
+            if (_healthBarContainer != null) return;
+
             GameObject container = new GameObject("HealthBar");
-            container.transform.SetParent(transform);
-            container.transform.localPosition = healthBarOffset;
+            container.transform.SetParent(transform, false);
             _healthBarContainer = container.transform;
 
-            // Khung nền đen/xám
-            GameObject bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            // Khung nền đen xám (Background)
+            GameObject bg = GameObject.CreatePrimitive(PrimitiveType.Cube);
             bg.name = "Background";
-            bg.transform.SetParent(_healthBarContainer);
+            bg.transform.SetParent(_healthBarContainer, false);
             bg.transform.localPosition = Vector3.zero;
-            bg.transform.localScale = new Vector3(0.65f, 0.10f, 1f);
-            Destroy(bg.GetComponent<Collider>());
-            SetQuadColor(bg, new Color(0.1f, 0.1f, 0.1f, 0.85f));
+            bg.transform.localScale = new Vector3(1.30f, 0.18f, 0.02f);
+            DestroyImmediateHelper(bg.GetComponent<Collider>());
+            SetSolidColor(bg, new Color(0.08f, 0.08f, 0.08f, 1.0f));
 
-            // Thanh máu xanh lá/vàng/đỏ
-            GameObject fill = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            // Thanh máu Fill
+            GameObject fill = GameObject.CreatePrimitive(PrimitiveType.Cube);
             fill.name = "Fill";
-            fill.transform.SetParent(_healthBarContainer);
-            fill.transform.localPosition = new Vector3(0f, 0f, -0.01f);
-            fill.transform.localScale = new Vector3(0.62f, 0.08f, 1f);
-            Destroy(fill.GetComponent<Collider>());
-            SetQuadColor(fill, new Color(0.2f, 0.85f, 0.25f, 1f));
+            fill.transform.SetParent(_healthBarContainer, false);
+            fill.transform.localPosition = new Vector3(0f, 0f, -0.015f);
+            fill.transform.localScale = new Vector3(1.24f, 0.13f, 0.025f);
+            DestroyImmediateHelper(fill.GetComponent<Collider>());
+            SetSolidColor(fill, new Color(0.20f, 0.88f, 0.25f, 1.0f));
             _healthBarFill = fill.transform;
+
+            // Khởi tạo ngay scale và offset chuẩn xác
+            Vector3 pScale = transform.localScale;
+            float invX = pScale.x > 0.001f ? (1f / pScale.x) : 1f;
+            float invY = pScale.y > 0.001f ? (1f / pScale.y) : 1f;
+            float invZ = pScale.z > 0.001f ? (1f / pScale.z) : 1f;
+            _healthBarContainer.localScale = new Vector3(invX, invY, invZ);
+            _healthBarContainer.localPosition = new Vector3(0f, GetHealthBarWorldHeight() * invY, 0f);
+
+            UpdateHealthBar();
         }
 
-        private void SetQuadColor(GameObject quad, Color color)
+        private void DestroyImmediateHelper(Object obj)
         {
-            Renderer r = quad.GetComponent<Renderer>();
+            if (obj == null) return;
+#if UNITY_EDITOR
+            if (!Application.isPlaying) Object.DestroyImmediate(obj);
+            else Object.Destroy(obj);
+#else
+            Object.Destroy(obj);
+#endif
+        }
+
+        private void SetSolidColor(GameObject go, Color color)
+        {
+            Renderer r = go.GetComponent<Renderer>();
             if (r != null)
             {
-                Shader unlit = Shader.Find("Unlit/Color") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
-                Material mat = new Material(unlit);
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                Shader shader = Shader.Find("Unlit/Color") ?? Shader.Find("GUI/Text Shader") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
+                Material mat = new Material(shader);
+                mat.mainTexture = Texture2D.whiteTexture;
                 mat.color = color;
-                r.sharedMaterial = mat;
+                r.material = mat;
             }
         }
 
@@ -387,20 +475,19 @@ namespace KingdomDefense.Enemy
             if (_healthBarFill == null) return;
 
             float ratio = Mathf.Clamp01(_currentHealth / maxHealth);
-            _healthBarFill.localScale = new Vector3(0.62f * ratio, 0.08f, 1f);
+            float fullWidth = 1.24f;
+            float currentWidth = fullWidth * ratio;
 
-            // Căn lề trái khi co ngắn lại
-            float offsetX = -0.31f * (1f - ratio);
-            _healthBarFill.localPosition = new Vector3(offsetX, 0f, -0.01f);
+            _healthBarFill.localScale = new Vector3(currentWidth, 0.13f, 0.025f);
+            _healthBarFill.localPosition = new Vector3(-0.5f * (fullWidth - currentWidth), 0f, -0.015f);
 
-            // Đổi màu vàng -> đỏ khi máu thấp
             Renderer r = _healthBarFill.GetComponent<Renderer>();
-            if (r != null && r.sharedMaterial != null)
+            if (r != null && r.material != null)
             {
                 if (ratio > 0.5f)
-                    r.sharedMaterial.color = Color.Lerp(Color.yellow, new Color(0.2f, 0.85f, 0.25f), (ratio - 0.5f) * 2f);
+                    r.material.color = Color.Lerp(new Color(1f, 0.85f, 0.1f), new Color(0.2f, 0.88f, 0.25f), (ratio - 0.5f) * 2f);
                 else
-                    r.sharedMaterial.color = Color.Lerp(Color.red, Color.yellow, ratio * 2f);
+                    r.material.color = Color.Lerp(new Color(0.95f, 0.15f, 0.15f), new Color(1f, 0.85f, 0.1f), ratio * 2f);
             }
         }
 
@@ -528,10 +615,7 @@ namespace KingdomDefense.Enemy
                 _movement.RestartPath();
             }
 
-            if (_healthBarContainer != null)
-            {
-                _healthBarContainer.gameObject.SetActive(showHealthBar);
-            }
+            EnsureHealthBarExists();
             UpdateHealthBar();
         }
 

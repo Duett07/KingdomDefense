@@ -1,6 +1,7 @@
 using UnityEngine;
 using KingdomDefense.Waypoints;
 using KingdomDefense.UI;
+using KingdomDefense.Allies;
 
 namespace KingdomDefense.Enemy
 {
@@ -26,6 +27,8 @@ namespace KingdomDefense.Enemy
         private float _walkCycle = 0f;
 
         private float _baseSpeed;
+
+        public bool IsBlocked { get; set; }
 
         public float Speed
         {
@@ -66,6 +69,7 @@ namespace KingdomDefense.Enemy
         {
             _hasEnded = false;
             _waypointIndex = 0;
+            IsBlocked = false;
             ResetSpeed();
 
             // Kiểm tra và lấy danh sách Waypoints
@@ -95,6 +99,31 @@ namespace KingdomDefense.Enemy
 
             Enemy enemyComp = GetComponent<Enemy>();
             bool isFly = (enemyComp != null && enemyComp.IsFlying);
+
+            // 0. Quái vật đi bộ: Kiểm tra chốt chặn của Hiệp sĩ hoàng gia trên đường
+            // Khi hiệp sĩ còn sống, quái vật đi bộ TUYỆT ĐỐI không thể đi qua, bắt buộc phải dừng lại đối đầu!
+            if (!isFly)
+            {
+                CastleKnight blocker = CheckKnightBlockade();
+                if (blocker != null)
+                {
+                    IsBlocked = true;
+                    // Xoay mặt nhìn thẳng vào hiệp sĩ
+                    Vector3 toKnight = blocker.transform.position - transform.position;
+                    toKnight.y = 0f;
+                    if (toKnight.sqrMagnitude > 0.001f)
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(toKnight.normalized), 15f * Time.deltaTime);
+                    }
+                    return; // DỪNG LẠI HOÀN TOÀN, CHỜ HIỆP SĨ BỊ TIÊU DIỆT MỚI ĐƯỢC ĐI TIẾP
+                }
+                else
+                {
+                    IsBlocked = false;
+                }
+            }
+
+            if (IsBlocked) return;
             float yOffset = isFly ? enemyComp.FlightHeight : 0f;
 
             // 1. Tính toán vector hướng tới điểm mốc mục tiêu
@@ -202,6 +231,31 @@ namespace KingdomDefense.Enemy
             {
                 Destroy(gameObject);
             }
+        }
+
+        /// <summary>
+        /// Quét tìm Hiệp sĩ hoàng gia đang chốt chặn phía trước trên đường mòn.
+        /// Quái vật đi bộ khi tiếp cận phạm vi chốt chặn (2.2m) bắt buộc phải dừng lại đối đầu, tuyệt đối không được đi qua.
+        /// </summary>
+        public CastleKnight CheckKnightBlockade()
+        {
+            float blockRadius = 2.2f;
+            var knights = CastleKnight.ActiveKnights;
+            if (knights == null || knights.Count == 0) return null;
+
+            for (int i = 0; i < knights.Count; i++)
+            {
+                var k = knights[i];
+                if (k != null && !k.IsDead && k.gameObject.activeInHierarchy)
+                {
+                    float dist = Vector3.Distance(transform.position, k.transform.position);
+                    if (dist <= blockRadius)
+                    {
+                        return k;
+                    }
+                }
+            }
+            return null;
         }
     }
 }
