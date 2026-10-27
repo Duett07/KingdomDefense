@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using KingdomDefense.Build;
 using KingdomDefense.Waypoints;
 using KingdomDefense.UI;
+using KingdomDefense.Allies;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -37,7 +38,7 @@ namespace KingdomDefense.Map
         [Header("--- THÔNG SỐ BẢN ĐỒ ---")]
         [SerializeField] private float mapWidth = 42f;
         [SerializeField] private float mapDepth = 38f;
-        [SerializeField] private float roadWidth = 2.2f;
+        [SerializeField] private float roadWidth = 3.2f;
 
         [Header("--- KAYKIT 3D MEDIEVAL PREFABS (TỰ NẠP NẾU TRỐNG) ---")]
         [SerializeField] private Material kayKitMaterial;
@@ -95,6 +96,7 @@ namespace KingdomDefense.Map
             EnsureWaveSpawner();
             EnsureObjectPool();
             EnsurePerformanceOptimizer();
+            EnsureCastleBarracks();
 
             // Nếu sa bàn đã được sinh trong Scene (MapGenerator đã có các GameObject con), giữ nguyên và không làm gì cả
             if (transform.childCount > 0)
@@ -138,6 +140,17 @@ namespace KingdomDefense.Map
             }
         }
 
+        private void EnsureCastleBarracks()
+        {
+            if (Object.FindAnyObjectByType<CastleBarracks>() == null)
+            {
+                GameObject barracksObj = new GameObject("CastleBarracks");
+                barracksObj.transform.SetParent(landmarksContainer != null ? landmarksContainer : transform);
+                barracksObj.transform.position = new Vector3(1.35f, 0f, -7.5f);
+                barracksObj.AddComponent<CastleBarracks>();
+            }
+        }
+
         /// <summary>
         /// Tạo toàn bộ Sa bàn & Giao diện chuẩn phong cách Kingdom Rush bằng 3D Assets KayKit.
         /// </summary>
@@ -158,6 +171,7 @@ namespace KingdomDefense.Map
             GeneratePerimeterMountains();
             GenerateAutumnPineForest();
             GenerateWaterPondAndWindmill();
+            GenerateMoatRiverAndStoneBridge();
             GenerateEnclosedFortressAndCamp();
             GenerateRockFormations();
             GenerateMedievalProps();
@@ -408,39 +422,51 @@ namespace KingdomDefense.Map
         }
 
         /// <summary>
-        /// Khởi tạo tọa độ đường mòn uốn lượn chữ S dẫn từ Cổng Bắc qua Cổng Thành vào Lâu Đài Hoàng Gia.
+        /// Khởi tạo tọa độ đại lộ uốn lượn chữ S 2 tầng dẫn từ Cổng Bắc qua Thung lũng vào Cổng Thành Nam.
+        /// Chiều dài kéo dài gấp đôi (~55m), chiều rộng 3.2m rộng rãi hào sảng.
+        /// Toàn bộ 12 ô cắm tháp được bố trí đón lõng tại các khúc cua hiểm trở, cách xa điểm xuất quái tối thiểu >7.5m.
         /// </summary>
         private void BuildRoadAndNodeCoordinates()
         {
             _roadCurvePoints.Clear();
             _nodePositions.Clear();
 
-            // Lộ trình uốn lượn thung lũng chữ S mềm mại: từ Doanh trại quái vật (Cổng Bắc) đến Lâu đài hoàng gia (Cổng Nam)
-            _roadCurvePoints.Add(new Vector3(-1.0f, 0.02f, 9.5f));   // P00: Doanh trại quái vật Cổng Bắc
-            _roadCurvePoints.Add(new Vector3(-1.0f, 0.02f, 7.2f));   // P01: Xuất phát
-            _roadCurvePoints.Add(new Vector3(1.5f, 0.02f, 5.2f));    // P02: Cua phải
-            _roadCurvePoints.Add(new Vector3(4.5f, 0.02f, 3.2f));    // P03: Sườn đồi
-            _roadCurvePoints.Add(new Vector3(5.2f, 0.02f, 0.5f));    // P04: Cua phía Đông
-            _roadCurvePoints.Add(new Vector3(2.2f, 0.02f, -1.5f));   // P05: Lòng thung lũng
-            _roadCurvePoints.Add(new Vector3(-1.2f, 0.02f, -2.8f));  // P06: Rừng thông
-            _roadCurvePoints.Add(new Vector3(-3.2f, 0.02f, -4.6f));  // P07: Khúc cua phía Tây
-            _roadCurvePoints.Add(new Vector3(-1.2f, 0.02f, -6.5f));  // P08: Hướng về cổng thành
-            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -7.5f));  // P09: Xuyên qua Cổng Tường Thành (wall_straight_gate)
-            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -10.5f)); // P10: Điểm đích - Trước thềm Lâu Đài Hoàng Gia!
+            // 1. Lộ trình uốn lượn thung lũng chữ S 2 tầng: Tổng chiều dài ~55m
+            // Đường cong tự nhiên mượt mà, không bị gấp khúc, không thắt nút nghẽn ngang trước cổng.
+            // Đoạn vào Cổng Thành Nam đi thẳng 100% trục X = 1.35m băng qua Cầu Vòm Đá Hoa Cương & Cổng Vòm, hoàn toàn không chạm/dính vào Tường Thành
+            _roadCurvePoints.Add(new Vector3(-1.5f, 0.02f, 13.5f));   // P00: Thành quái vật Cổng Bắc (Xuất phát)
+            _roadCurvePoints.Add(new Vector3(-1.5f, 0.02f, 10.8f));   // P01: Độc đạo rời Cổng Bắc
+            _roadCurvePoints.Add(new Vector3(0.8f, 0.02f, 8.5f));     // P02: Khúc ngoặt mở rộng tiến vào thung lũng
+            _roadCurvePoints.Add(new Vector3(4.5f, 0.02f, 6.8f));     // P03: Sườn đồi Cối xay gió phía Đông
+            _roadCurvePoints.Add(new Vector3(6.8f, 0.02f, 4.5f));     // P04: Vòng cung phía Đông tầng trên
+            _roadCurvePoints.Add(new Vector3(6.5f, 0.02f, 1.8f));     // P05: Cung uốn lượn thung lũng Đông
+            _roadCurvePoints.Add(new Vector3(4.2f, 0.02f, 0.2f));     // P06: Cua lượn chữ S chuyển làn sang sườn Tây
+            _roadCurvePoints.Add(new Vector3(1.5f, 0.02f, -0.8f));    // P07: Giao lộ trung tâm thung lũng
+            _roadCurvePoints.Add(new Vector3(-2.5f, 0.02f, -1.2f));   // P08: Tiến vào thung lũng phía Tây
+            _roadCurvePoints.Add(new Vector3(-3.8f, 0.02f, -2.0f));   // P09: Vòng cung Tây mượt mà tự nhiên
+            _roadCurvePoints.Add(new Vector3(-3.0f, 0.02f, -3.0f));   // P10: Khúc lượn xuôi về hướng Nam
+            _roadCurvePoints.Add(new Vector3(0.5f, 0.02f, -3.7f));    // P11: Khúc lượn hướng vào đại lộ chính diện
+            _roadCurvePoints.Add(new Vector3(1.2f, 0.02f, -4.0f));    // P12: Căn chỉnh trục đại lộ hoàng gia
+            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -4.5f));   // P13: Đầu cầu đá phía Bắc
+            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -5.85f));  // P14: Giữa cầu vòm đá hoa cương bắc qua sông
+            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -7.2f));   // P15: Đầu cầu đá phía Nam trước Cổng Thành
+            _roadCurvePoints.Add(new Vector3(1.35f, 0.02f, -10.5f));  // P16: Điểm đích - Trước thềm Lâu Đài Hoàng Gia!
 
-            // 12 vị trí ô cắm tháp (Node) đặt dọc 2 bên các khúc cua chiến lược chuẩn sa bàn Kingdom Rush
-            _nodePositions.Add(new Vector3(-3.2f, 0.03f, 7.2f));
-            _nodePositions.Add(new Vector3(1.9f, 0.03f, 7.3f));
-            _nodePositions.Add(new Vector3(-1.3f, 0.03f, 4.7f));
-            _nodePositions.Add(new Vector3(4.8f, 0.03f, 5.3f));
-            _nodePositions.Add(new Vector3(7.0f, 0.03f, 3.0f));
-            _nodePositions.Add(new Vector3(7.3f, 0.03f, 0.5f));
-            _nodePositions.Add(new Vector3(4.8f, 0.03f, -2.5f));
-            _nodePositions.Add(new Vector3(-0.2f, 0.03f, -0.3f));
-            _nodePositions.Add(new Vector3(-3.4f, 0.03f, -1.8f));
-            _nodePositions.Add(new Vector3(-5.4f, 0.03f, -4.6f));
-            _nodePositions.Add(new Vector3(-3.7f, 0.03f, -7.0f));
-            _nodePositions.Add(new Vector3(3.5f, 0.03f, -5.8f));
+            // 2. 12 vị trí ô cắm tháp chuẩn sa bàn Kingdom Rush:
+            // Phân bổ độc lập, khoảng cách giữa 2 ô bất kỳ >= 3.72m (hoàn toàn KHÔNG dính nhau),
+            // cách tim đường 3.28m - 3.92m (cách mép đường cỏ > 0.4m), cách điểm xuất quái > 7.5m:
+            _nodePositions.Add(new Vector3(-2.00f, 0.03f, 5.90f));   // N01: Phía Tây vòng cua trên (cách spawn 7.62m, cách đường 3.75m)
+            _nodePositions.Add(new Vector3(5.50f, 0.03f, 10.70f));   // N02: Đồi cao Đông Bắc (cách spawn 7.54m, cách đường 3.92m)
+            _nodePositions.Add(new Vector3(8.60f, 0.03f, 8.30f));    // N03: Cung Đông tầng trên (cách spawn 11.36m, cách đường 3.74m)
+            _nodePositions.Add(new Vector3(10.60f, 0.03f, 4.80f));   // N04: Vòng ngoài thung lũng Đông (cách spawn 14.90m, cách đường 3.75m)
+            _nodePositions.Add(new Vector3(2.80f, 0.03f, 3.80f));    // N05: Ốc đảo bên trong cua Đông (cách spawn 10.61m, cách đường 3.44m)
+            _nodePositions.Add(new Vector3(10.10f, 0.03f, 1.00f));   // N06: Vòng ngoài cua Đông hạ tầng (cách spawn 17.05m, cách đường 3.61m)
+            _nodePositions.Add(new Vector3(7.80f, 0.03f, -2.00f));   // N07: Phía Đông chuyển làn thung lũng (cách spawn 18.08m, cách đường 3.68m)
+            _nodePositions.Add(new Vector3(-0.75f, 0.03f, 2.30f));   // N08: Gò đất trung tâm giữa 2 khúc cua (cách spawn 11.22m, cách đường 3.32m)
+            _nodePositions.Add(new Vector3(-4.50f, 0.03f, 2.05f));   // N09: Sườn đồi Bắc thung lũng Tây (cách spawn 11.83m, cách đường 3.71m)
+            _nodePositions.Add(new Vector3(-7.25f, 0.03f, -0.45f));  // N10: Vành ngoài đỉnh vòng cua phía Tây (cách spawn 15.08m, cách đường 3.78m)
+            _nodePositions.Add(new Vector3(-6.75f, 0.03f, -4.20f));  // N11: Bờ Bắc sông - cánh tả bảo vệ cầu đá (cách spawn 18.46m, cách đường 3.49m)
+            _nodePositions.Add(new Vector3(4.60f, 0.03f, -4.00f));   // N12: Bờ Bắc sông - cánh hữu bảo vệ cầu đá (cách spawn 18.53m, cách đường 3.28m)
         }
 
         /// <summary>
@@ -854,7 +880,7 @@ namespace KingdomDefense.Map
                     float jitterX = x + Random.Range(-0.35f, 0.35f);
                     float jitterZ = z + Random.Range(-0.35f, 0.35f);
                     Vector3 pos = new Vector3(jitterX, 0f, jitterZ);
-                    if (IsTooCloseToRoad(pos) || IsInsideFortress(pos)) continue;
+                    if (IsTooCloseToRoad(pos) || IsInsideFortress(pos) || IsInsideRiver(pos)) continue;
 
                     if (treePool.Count > 0)
                     {
@@ -878,7 +904,7 @@ namespace KingdomDefense.Map
                     float jitterX = x + Random.Range(-0.35f, 0.35f);
                     float jitterZ = z + Random.Range(-0.35f, 0.35f);
                     Vector3 pos = new Vector3(jitterX, 0f, jitterZ);
-                    if (IsTooCloseToRoad(pos) || IsInsideFortress(pos) || IsNearWaterPond(pos)) continue;
+                    if (IsTooCloseToRoad(pos) || IsInsideFortress(pos) || IsInsideRiver(pos) || IsNearWaterPond(pos)) continue;
 
                     if (treePool.Count > 0)
                     {
@@ -936,15 +962,15 @@ namespace KingdomDefense.Map
             // 1. Cối xay gió trung cổ nhìn ra thung lũng
             if (windmillPrefab != null)
             {
-                InstantiateModel(windmillPrefab, new Vector3(8.5f, 0f, 1.2f), Quaternion.Euler(0f, -50f, 0f), landmarksContainer, 1.25f);
+                InstantiateModel(windmillPrefab, new Vector3(12.5f, 0f, 4.2f), Quaternion.Euler(0f, -50f, 0f), landmarksContainer, 1.25f);
             }
             else
             {
-                CreateWindmill(new Vector3(8.5f, 0f, 1.2f), landmarksContainer);
+                CreateWindmill(new Vector3(12.5f, 0f, 4.2f), landmarksContainer);
             }
 
             // 2. Hồ nước phẳng lặng
-            Vector3 pondPos = new Vector3(8.2f, 0f, -2.5f);
+            Vector3 pondPos = new Vector3(10.5f, 0f, -2.8f);
             GameObject pond = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pond.name = "Water_Pond";
             pond.transform.SetParent(landmarksContainer);
@@ -1006,6 +1032,157 @@ namespace KingdomDefense.Map
                 blade.transform.localScale = new Vector3(0.18f, 1.2f, 0.02f);
                 blade.transform.localRotation = Quaternion.Euler(0f, 0f, i * 45f);
                 SetMaterial(blade, windmillBladeColor, 0.05f);
+            }
+        }
+
+        /// <summary>
+        /// Tạo con sông hào nước (Moat River) cắt ngang phía trước Cổng Thành Nam và Cầu Vòm Đá Hoa Cương (Stone Arch Bridge).
+        /// Mọi đơn vị muốn tiến vào Cổng Thành Nam bắt buộc phải đi qua cây cầu đá này.
+        /// </summary>
+        private void GenerateMoatRiverAndStoneBridge()
+        {
+            GameObject riverFolder = new GameObject("--- River_And_Stone_Bridge ---");
+            riverFolder.transform.SetParent(landmarksContainer != null ? landmarksContainer : transform);
+
+            float riverZ = -5.85f;
+            float riverWidth = 2.6f;
+            float riverLength = 40.0f;
+
+            // 1. Lòng sông hào nước (Water Moat Basin)
+            GameObject waterObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            waterObj.name = "Moat_Water_Surface";
+            waterObj.transform.SetParent(riverFolder.transform);
+            waterObj.transform.position = new Vector3(0f, 0.006f, riverZ);
+            waterObj.transform.localScale = new Vector3(riverLength, 0.015f, riverWidth);
+            // Màu xanh ngọc sâu thẳm lấp lánh (aquatic turquoise / deep river)
+            SetMaterial(waterObj, new Color(0.16f, 0.52f, 0.65f), 0.92f);
+            DestroyImmediateHelper(waterObj.GetComponent<Collider>());
+
+            // Lớp phản chiếu ánh nước nhẹ
+            GameObject waterSheen = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            waterSheen.name = "Moat_Water_Sheen";
+            waterSheen.transform.SetParent(riverFolder.transform);
+            waterSheen.transform.position = new Vector3(0f, 0.009f, riverZ);
+            waterSheen.transform.localScale = new Vector3(riverLength, 0.005f, riverWidth * 0.75f);
+            SetMaterial(waterSheen, new Color(0.25f, 0.68f, 0.78f, 0.6f), 0.98f);
+            DestroyImmediateHelper(waterSheen.GetComponent<Collider>());
+
+            // 2. Hai bờ sông đất ẩm mộc sẫm màu (North Bank & South Bank)
+            GameObject northBank = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            northBank.name = "River_Bank_North";
+            northBank.transform.SetParent(riverFolder.transform);
+            northBank.transform.position = new Vector3(0f, 0.014f, riverZ + riverWidth * 0.5f + 0.18f);
+            northBank.transform.localScale = new Vector3(riverLength, 0.022f, 0.38f);
+            SetMaterial(northBank, new Color(0.36f, 0.32f, 0.22f), 0.05f);
+            DestroyImmediateHelper(northBank.GetComponent<Collider>());
+
+            GameObject southBank = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            southBank.name = "River_Bank_South";
+            southBank.transform.SetParent(riverFolder.transform);
+            southBank.transform.position = new Vector3(0f, 0.014f, riverZ - riverWidth * 0.5f - 0.18f);
+            southBank.transform.localScale = new Vector3(riverLength, 0.022f, 0.38f);
+            SetMaterial(southBank, new Color(0.36f, 0.32f, 0.22f), 0.05f);
+            DestroyImmediateHelper(southBank.GetComponent<Collider>());
+
+            // 3. CẦU VÒM ĐÁ HOA CƯƠNG (Stone Arch Bridge) BẮC QUA SÔNG
+            // Cầu nằm chính diện trục X = 1.35m, chiều dài Z từ -4.5m đến -7.2m (dài 2.7m), rộng 3.4m khớp với đại lộ
+            GameObject bridgeObj = new GameObject("Stone_Arch_Bridge");
+            bridgeObj.transform.SetParent(riverFolder.transform);
+            bridgeObj.transform.position = new Vector3(1.35f, 0f, riverZ);
+
+            // 3a. Mặt cầu đá hoa cương kiên cố (Bridge Stone Deck)
+            GameObject bridgeDeck = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bridgeDeck.name = "Bridge_Stone_Deck";
+            bridgeDeck.transform.SetParent(bridgeObj.transform);
+            bridgeDeck.transform.position = new Vector3(1.35f, 0.032f, riverZ);
+            bridgeDeck.transform.localScale = new Vector3(3.30f, 0.045f, 2.80f);
+            SetMaterial(bridgeDeck, new Color(0.58f, 0.56f, 0.52f), 0.08f);
+            DestroyImmediateHelper(bridgeDeck.GetComponent<Collider>());
+
+            // Lớp lát đá phiến trung tâm cầu (Cobblestone pathway)
+            GameObject bridgeCobble = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bridgeCobble.name = "Bridge_Cobblestone_Path";
+            bridgeCobble.transform.SetParent(bridgeObj.transform);
+            bridgeCobble.transform.position = new Vector3(1.35f, 0.038f, riverZ);
+            bridgeCobble.transform.localScale = new Vector3(2.60f, 0.048f, 2.75f);
+            SetMaterial(bridgeCobble, new Color(0.68f, 0.65f, 0.60f), 0.10f);
+            DestroyImmediateHelper(bridgeCobble.GetComponent<Collider>());
+
+            // 3b. Hai lan can đá bảo vệ 2 bên thành cầu (Stone Parapets)
+            // Lan can phía Tây
+            GameObject westRailing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            westRailing.name = "Bridge_Railing_West";
+            westRailing.transform.SetParent(bridgeObj.transform);
+            westRailing.transform.position = new Vector3(1.35f - 1.55f, 0.22f, riverZ);
+            westRailing.transform.localScale = new Vector3(0.32f, 0.38f, 2.80f);
+            SetMaterial(westRailing, new Color(0.48f, 0.46f, 0.42f), 0.05f);
+            DestroyImmediateHelper(westRailing.GetComponent<Collider>());
+
+            // Lan can phía Đông
+            GameObject eastRailing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            eastRailing.name = "Bridge_Railing_East";
+            eastRailing.transform.SetParent(bridgeObj.transform);
+            eastRailing.transform.position = new Vector3(1.35f + 1.55f, 0.22f, riverZ);
+            eastRailing.transform.localScale = new Vector3(0.32f, 0.38f, 2.80f);
+            SetMaterial(eastRailing, new Color(0.48f, 0.46f, 0.42f), 0.05f);
+            DestroyImmediateHelper(eastRailing.GetComponent<Collider>());
+
+            // 3c. Bốn cột đá hoa cương đầu cầu (Corner Pillars with Stone Spheres)
+            Vector3[] pillarOffsets = new Vector3[]
+            {
+                new Vector3(-1.55f, 0f, 1.35f),  // Bắc - Tây
+                new Vector3(1.55f, 0f, 1.35f),   // Bắc - Đông
+                new Vector3(-1.55f, 0f, -1.35f), // Nam - Tây
+                new Vector3(1.55f, 0f, -1.35f)   // Nam - Đông
+            };
+
+            for (int p = 0; p < pillarOffsets.Length; p++)
+            {
+                Vector3 pPos = new Vector3(1.35f, 0f, riverZ) + pillarOffsets[p];
+
+                // Trụ đá
+                GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                pillar.name = $"Bridge_Pillar_{p}";
+                pillar.transform.SetParent(bridgeObj.transform);
+                pillar.transform.position = pPos + new Vector3(0f, 0.28f, 0f);
+                pillar.transform.localScale = new Vector3(0.42f, 0.52f, 0.42f);
+                SetMaterial(pillar, new Color(0.42f, 0.40f, 0.36f), 0.05f);
+                DestroyImmediateHelper(pillar.GetComponent<Collider>());
+
+                // Đỉnh cầu ngọc đá tròn (Stone sphere finial)
+                GameObject finial = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                finial.name = $"Pillar_Finial_{p}";
+                finial.transform.SetParent(bridgeObj.transform);
+                finial.transform.position = pPos + new Vector3(0f, 0.58f, 0f);
+                finial.transform.localScale = new Vector3(0.34f, 0.34f, 0.34f);
+                SetMaterial(finial, new Color(0.72f, 0.68f, 0.58f), 0.15f);
+                DestroyImmediateHelper(finial.GetComponent<Collider>());
+            }
+
+            // 3d. Hai mố vòm cầu chìm dưới nước (Bridge Arch Supports)
+            GameObject archWest = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            archWest.name = "Bridge_Arch_West";
+            archWest.transform.SetParent(bridgeObj.transform);
+            archWest.transform.position = new Vector3(1.35f - 1.1f, -0.05f, riverZ);
+            archWest.transform.localScale = new Vector3(0.85f, 0.25f, 1.8f);
+            SetMaterial(archWest, new Color(0.35f, 0.33f, 0.30f), 0.05f);
+            DestroyImmediateHelper(archWest.GetComponent<Collider>());
+
+            GameObject archEast = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            archEast.name = "Bridge_Arch_East";
+            archEast.transform.SetParent(bridgeObj.transform);
+            archEast.transform.position = new Vector3(1.35f + 1.1f, -0.05f, riverZ);
+            archEast.transform.localScale = new Vector3(0.85f, 0.25f, 1.8f);
+            SetMaterial(archEast, new Color(0.35f, 0.33f, 0.30f), 0.05f);
+            DestroyImmediateHelper(archEast.GetComponent<Collider>());
+
+            // 4. Hoa súng trôi dạt 2 bên bờ sông (KayKit Nature)
+            if (waterlilyPrefab != null)
+            {
+                InstantiateModel(waterlilyPrefab, new Vector3(-4.5f, 0.018f, riverZ + 0.4f), Quaternion.Euler(0f, 35f, 0f), riverFolder.transform, 1.0f);
+                InstantiateModel(waterlilyPrefab, new Vector3(-8.0f, 0.018f, riverZ - 0.3f), Quaternion.Euler(0f, -45f, 0f), riverFolder.transform, 1.1f);
+                InstantiateModel(waterlilyPrefab, new Vector3(6.5f, 0.018f, riverZ + 0.35f), Quaternion.Euler(0f, 70f, 0f), riverFolder.transform, 1.05f);
+                InstantiateModel(waterlilyPrefab, new Vector3(9.5f, 0.018f, riverZ - 0.4f), Quaternion.Euler(0f, -20f, 0f), riverFolder.transform, 0.95f);
             }
         }
 
@@ -1129,21 +1306,64 @@ namespace KingdomDefense.Map
             }
 
             // ========================================================
-            // B. DOANH TRẠI QUÁI VẬT TẠI CỔNG BẮC (NORTH MONSTER CAMP)
+            // B. THÀNH QUÁI VẬT TẠI CỔNG BẮC (NORTH MONSTER CITADEL)
             // ========================================================
-            if (tentPrefab != null)
+            float northGateX = -1.5f;
+            float northGateZ = 13.5f;
+            float northWallScale = 1.30f;
+
+            // 1. CỔNG THÀNH QUÁI VẬT (Facing South towards road)
+            if (wallGatePrefab != null)
             {
-                InstantiateModel(tentPrefab, new Vector3(-1.0f, 0f, 10.2f), Quaternion.Euler(0f, 0f, 0f), landmarksContainer, 1.35f);
-                InstantiateModel(tentPrefab, new Vector3(-3.2f, 0f, 10.0f), Quaternion.Euler(0f, 25f, 0f), landmarksContainer, 1.15f);
+                InstantiateModel(wallGatePrefab, new Vector3(northGateX, 0f, northGateZ), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, northWallScale);
             }
+
+            // 2. TƯỜNG THÀNH 2 BÊN CỔNG QUÁI VẬT
+            if (wallStraightPrefab != null)
+            {
+                // Cánh Tây
+                InstantiateModel(wallStraightPrefab, new Vector3(-3.7f, 0f, northGateZ), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, northWallScale);
+                // Cánh Đông
+                InstantiateModel(wallStraightPrefab, new Vector3(0.7f, 0f, northGateZ), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, northWallScale);
+            }
+
+            // 3. HAI THÁP CANH QUÁI VẬT CẮM CỜ ĐỎ
+            GameObject nTower = wallTowerPrefab != null ? wallTowerPrefab : wallCornerPrefab;
+            if (nTower != null)
+            {
+                InstantiateModel(nTower, new Vector3(-5.9f, 0f, northGateZ), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, northWallScale);
+                InstantiateModel(nTower, new Vector3(2.9f, 0f, northGateZ), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, northWallScale);
+            }
+
+            // 4. CỜ ĐỎ QUÁI VẬT TẠI 2 ĐỈNH THÁP VÀ TRƯỚC CỔNG
             if (flagRedPrefab != null)
             {
-                InstantiateModel(flagRedPrefab, new Vector3(0.5f, 0f, 10.0f), Quaternion.identity, landmarksContainer, 1.25f);
+                InstantiateModel(flagRedPrefab, new Vector3(-5.9f, 2.5f, northGateZ), Quaternion.identity, landmarksContainer, 1.3f);
+                InstantiateModel(flagRedPrefab, new Vector3(2.9f, 2.5f, northGateZ), Quaternion.identity, landmarksContainer, 1.3f);
+                InstantiateModel(flagRedPrefab, new Vector3(northGateX + 1.5f, 0f, northGateZ - 0.8f), Quaternion.identity, landmarksContainer, 1.2f);
             }
+
+            // 5. DOANH TRẠI & LỀU QUÁI TRONG SÂN THÀNH (Z > 14.0m)
+            if (tentPrefab != null)
+            {
+                InstantiateModel(tentPrefab, new Vector3(-1.5f, 0f, 15.5f), Quaternion.Euler(0f, 180f, 0f), landmarksContainer, 1.4f);
+                InstantiateModel(tentPrefab, new Vector3(-4.2f, 0f, 15.0f), Quaternion.Euler(0f, 160f, 0f), landmarksContainer, 1.2f);
+                InstantiateModel(tentPrefab, new Vector3(1.2f, 0f, 15.0f), Quaternion.Euler(0f, -160f, 0f), landmarksContainer, 1.2f);
+            }
+
+            // 6. THÙNG GỖ VŨ KHÍ & VẬT PHẨM QUÁI VẬT
             if (cratePrefab != null)
             {
-                InstantiateModel(cratePrefab, new Vector3(0.2f, 0f, 8.8f), Quaternion.Euler(0f, 20f, 0f), landmarksContainer, 1.05f);
+                InstantiateModel(cratePrefab, new Vector3(-3.0f, 0f, 14.5f), Quaternion.Euler(0f, 25f, 0f), landmarksContainer, 1.1f);
+                InstantiateModel(cratePrefab, new Vector3(0.0f, 0f, 14.5f), Quaternion.Euler(0f, -15f, 0f), landmarksContainer, 1.1f);
             }
+            if (barrelPrefab != null)
+            {
+                InstantiateModel(barrelPrefab, new Vector3(-3.4f, 0f, 14.2f), Quaternion.identity, landmarksContainer, 1.0f);
+            }
+
+            // Doanh trại xuất quân Hiệp sĩ Hoàng gia Cổng Nam
+            EnsureCastleBarracks();
         }
 
         /// <summary>
@@ -1155,8 +1375,8 @@ namespace KingdomDefense.Map
             {
                 new Vector3(4.8f, 0f, 7.5f),
                 new Vector3(-5.5f, 0f, -0.5f),
-                new Vector3(6.5f, 0f, -6.2f),
-                new Vector3(-2.2f, 0f, -5.5f),
+                new Vector3(7.5f, 0f, -3.8f),
+                new Vector3(-5.0f, 0f, -3.8f),
                 new Vector3(9.5f, 0f, 5.0f),
                 new Vector3(-9.0f, 0f, -2.5f)
             };
@@ -1269,6 +1489,11 @@ namespace KingdomDefense.Map
             return (pos.x >= -6.5f && pos.x <= 9.0f && pos.z <= -6.0f && pos.z >= -17.5f);
         }
 
+        private bool IsInsideRiver(Vector3 pos)
+        {
+            return (pos.z >= -7.2f && pos.z <= -4.5f);
+        }
+
         private bool IsNearWaterPond(Vector3 pos)
         {
             return Vector3.Distance(new Vector3(pos.x, 0, pos.z), new Vector3(8.2f, 0, -2.5f)) < 3.0f;
@@ -1378,7 +1603,7 @@ namespace KingdomDefense.Map
             CreateIconButton(topRightPanel.transform, new Vector2(38, 0), iconPause, "", out Button pauseBtn, out Text pauseText, "Btn_Pause");
             if (pauseBtn != null) pauseBtn.onClick.AddListener(hud.TogglePause);
 
-            // 4. BOTTOM-DOCK (Building Toolbar: 5 nút Cung, Pháo, Phép, Băng, Tường Thành)
+            // 4. BOTTOM-DOCK (Toolbar: 5 nút Tháp & Xuất Hiệp Sĩ)
             GameObject bottomDock = new GameObject("BottomCenter_BuildDock");
             bottomDock.transform.SetParent(canvasObj.transform, false);
             RectTransform bdRect = bottomDock.AddComponent<RectTransform>();
@@ -1400,8 +1625,9 @@ namespace KingdomDefense.Map
             CreateTowerCardButton(bottomDock.transform, new Vector2(0, 0), "⚡ PHÉP [3]", "150", out Button mageBtn, out Image mageHl, out Text mageCost);
             // Nút 4: Tháp Băng [4] (175 Vàng)
             CreateTowerCardButton(bottomDock.transform, new Vector2(170, 0), "❄️ BĂNG [4]", "175", out Button frostBtn, out Image frostHl, out Text frostCost);
-            // Nút 5: Tường Thành [5] (70 Vàng)
-            CreateTowerCardButton(bottomDock.transform, new Vector2(340, 0), "🛡️ TƯỜNG [5]", "70", out Button wallBtn, out Image wallHl, out Text wallCost);
+            // Nút 5: Xuất Hiệp Sĩ [R] (Miễn phí, Hồi chiêu 15s)
+            CreateTowerCardButton(bottomDock.transform, new Vector2(340, 0), "⚔️ HIỆP SĨ [R]", "SẴN SÀNG", out Button knightBtn, out Image knightHl, out Text knightCost);
+            if (knightBtn != null) knightBtn.onClick.AddListener(hud.OnSummonKnightClicked);
 
             // Liên kết tham chiếu vào GameHUD
             SetPrivateField(hud, "livesText", livesText);
@@ -1420,19 +1646,22 @@ namespace KingdomDefense.Map
             SetPrivateField(hud, "bombBtn", bombBtn);
             SetPrivateField(hud, "mageBtn", mageBtn);
             SetPrivateField(hud, "frostBtn", frostBtn);
-            SetPrivateField(hud, "wallBtn", wallBtn);
+            SetPrivateField(hud, "wallBtn", null);
+            SetPrivateField(hud, "knightBtn", knightBtn);
 
             SetPrivateField(hud, "archerHighlight", archerHl);
             SetPrivateField(hud, "bombHighlight", bombHl);
             SetPrivateField(hud, "mageHighlight", mageHl);
             SetPrivateField(hud, "frostHighlight", frostHl);
-            SetPrivateField(hud, "wallHighlight", wallHl);
+            SetPrivateField(hud, "wallHighlight", null);
+            SetPrivateField(hud, "knightHighlight", knightHl);
 
             SetPrivateField(hud, "archerCostText", archerCost);
             SetPrivateField(hud, "bombCostText", bombCost);
             SetPrivateField(hud, "mageCostText", mageCost);
             SetPrivateField(hud, "frostCostText", frostCost);
-            SetPrivateField(hud, "wallCostText", wallCost);
+            SetPrivateField(hud, "wallCostText", null);
+            SetPrivateField(hud, "knightCostText", knightCost);
         }
 
         private void CreateManaBar(Transform parent, out Slider outSlider, out Text outText)

@@ -187,5 +187,24 @@ namespace KingdomDefense.Editor
                 return false;
             }
         }
+
+        [MenuItem("Kingdom Defense/Map/Regenerate Battlefield Map & Knights", priority = 50)]
+        public static void RegenerateBattlefieldMap()
+        {
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+            if (scene.name != "Battlefield")
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(SCENE_PATH);
+            }
+
+            var mapGen = UnityEngine.Object.FindAnyObjectByType<KingdomDefense.Map.MapGenerator>();
+            if (mapGen != null)
+            {
+                mapGen.GenerateMap();
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(mapGen.gameObject.scene);
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(mapGen.gameObject.scene);
+                Debug.Log("<color=#2ECC71>[MapGenerator] Đã tạo mới toàn bộ Sa bàn với Con đường 3.2m mở rộng, Lộ trình S-curve dài ~55m, 12 Ô cắm tháp an toàn và Doanh trại Hiệp sĩ Cổng Nam!</color>");
+            }
+        }
     }
 }
