@@ -35,6 +35,10 @@ namespace KingdomDefense.UI
         private Text _sellButtonText;
         private Button _closeButton;
 
+        public Tower SelectedTower => _selectedTower;
+        public bool IsSellButtonInteractable => _sellButton != null && _sellButton.interactable;
+        public Button SellButton => _sellButton;
+
         private readonly Color _colorPanelBg = new Color(0.08f, 0.12f, 0.18f, 0.94f); // Slate tối sang trọng
         private readonly Color _colorBorder = new Color(0.92f, 0.72f, 0.20f, 1.0f);   // Vàng đồng Hoàng gia
         private readonly Color _colorUpgradeActive = new Color(0.12f, 0.75f, 0.40f, 1.0f); // Xanh lục bảo
@@ -293,6 +297,11 @@ namespace KingdomDefense.UI
             _selectedTower = tower;
             _selectedTower.ShowRangeIndicator(true);
 
+            if (_sellButton != null)
+            {
+                _sellButton.interactable = true;
+            }
+
             RefreshUI();
             gameObject.SetActive(true);
         }
@@ -306,6 +315,11 @@ namespace KingdomDefense.UI
             {
                 _selectedTower.ShowRangeIndicator(false);
                 _selectedTower = null;
+            }
+
+            if (_sellButton != null)
+            {
+                _sellButton.interactable = true;
             }
 
             Hide();
@@ -329,6 +343,10 @@ namespace KingdomDefense.UI
 
             int sellVal = _selectedTower.SellAmount;
             _sellButtonText.text = $"💰 BÁN THÁP (+{sellVal} VÀNG - 70%)";
+            if (_sellButton != null)
+            {
+                _sellButton.interactable = true;
+            }
 
             if (_selectedTower.CanUpgrade)
             {

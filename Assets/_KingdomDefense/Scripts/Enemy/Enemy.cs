@@ -276,10 +276,11 @@ namespace KingdomDefense.Enemy
             {
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 r.receiveShadows = false;
-                Shader shader = Shader.Find("Unlit/Color") ?? Shader.Find("GUI/Text Shader") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
-                Material mat = new Material(shader);
+                Shader shader = Shader.Find("Sprites/Default") ?? Shader.Find("UI/Default") ?? Shader.Find("Mobile/Diffuse") ?? Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                Material mat = shader != null ? new Material(shader) : new Material(Shader.Find("Standard"));
                 mat.mainTexture = Texture2D.whiteTexture;
                 mat.color = color;
+                if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
                 r.material = mat;
             }
         }
@@ -351,11 +352,14 @@ namespace KingdomDefense.Enemy
             Renderer[] renderers = GetComponentsInChildren<Renderer>();
             if (renderers == null || renderers.Length == 0) yield break;
 
+            Dictionary<Renderer, Color> originalColors = new Dictionary<Renderer, Color>();
+
             foreach (Renderer r in renderers)
             {
-                if (r.name == "Fill" || r.name == "Background") continue;
+                if (r == null || r.name == "Fill" || r.name == "Background") continue;
                 if (r.material != null && r.material.HasProperty("_Color"))
                 {
+                    originalColors[r] = r.material.color;
                     r.material.color = Color.Lerp(r.material.color, Color.red, 0.45f);
                 }
             }
@@ -364,10 +368,17 @@ namespace KingdomDefense.Enemy
 
             foreach (Renderer r in renderers)
             {
-                if (r.name == "Fill" || r.name == "Background") continue;
+                if (r == null || r.name == "Fill" || r.name == "Background") continue;
                 if (r.material != null && r.material.HasProperty("_Color"))
                 {
-                    r.material.color = Color.white;
+                    if (originalColors.TryGetValue(r, out Color origColor))
+                    {
+                        r.material.color = origColor;
+                    }
+                    else
+                    {
+                        r.material.color = Color.white;
+                    }
                 }
             }
         }
@@ -619,12 +630,12 @@ namespace KingdomDefense.Enemy
             UpdateHealthBar();
         }
 
-        public void OnSpawnFromPool()
+        public virtual void OnSpawnFromPool()
         {
             ResetEnemy();
         }
 
-        public void OnReturnToPool()
+        public virtual void OnReturnToPool()
         {
             RemoveSlow();
             if (_healthBarContainer != null) _healthBarContainer.gameObject.SetActive(false);

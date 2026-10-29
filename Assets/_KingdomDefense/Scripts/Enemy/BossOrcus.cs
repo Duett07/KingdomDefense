@@ -35,6 +35,50 @@ namespace KingdomDefense.Enemy
             _slamCountdown = 4.0f; // Đợt dậm đất đầu tiên sau 4 giây xuất trận
         }
 
+        private void Start()
+        {
+            EnsureBossMaterialsValid();
+        }
+
+        public override void OnSpawnFromPool()
+        {
+            base.OnSpawnFromPool();
+            EnsureBossMaterialsValid();
+        }
+
+        /// <summary>
+        /// Đảm bảo tất cả bộ phận (thân hình, sừng, vũ khí) của Boss Orcus đều có Material chuẩn,
+        /// tuyệt đối triệt tiêu hiện tượng khối trắng (missing material/white block).
+        /// </summary>
+        public void EnsureBossMaterialsValid()
+        {
+            Material bossMat = Resources.Load<Material>("Materials/M_BossOrcus") ??
+                               Resources.Load<Material>("Materials/M_Knight");
+#if UNITY_EDITOR
+            if (bossMat == null)
+            {
+                bossMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_KingdomDefense/Materials/M_BossOrcus.mat") ??
+                          UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_KingdomDefense/Materials/M_Knight.mat");
+            }
+#endif
+
+            if (bossMat != null)
+            {
+                Renderer[] allRenderers = GetComponentsInChildren<Renderer>(true);
+                foreach (Renderer r in allRenderers)
+                {
+                    if (r == null) continue;
+                    string rName = r.gameObject.name;
+                    if (rName == "Fill" || rName == "Background" || rName == "Orcus_Quake_Ring" || rName == "Frost_Ground_Ring") continue;
+
+                    if (r.sharedMaterial == null || r.sharedMaterial.name.Contains("Default"))
+                    {
+                        r.sharedMaterial = bossMat;
+                    }
+                }
+            }
+        }
+
         private void Update()
         {
             if (IsDead) return;
@@ -108,7 +152,7 @@ namespace KingdomDefense.Enemy
             Renderer r = quake.GetComponent<Renderer>();
             if (r != null)
             {
-                Shader s = Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("UI/Default") ?? Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
                 Material mat = new Material(s);
                 mat.color = new Color(1.0f, 0.25f, 0.1f, 0.75f); // Đỏ lửa chấn động
                 r.sharedMaterial = mat;
