@@ -86,6 +86,19 @@ namespace KingdomDefense.Allies
 
         private void LoadDefaultAssets()
         {
+            // 1. Ưu tiên nạp từ Resources để tương thích 100% trên thiết bị Mobile và bản build độc lập
+            if (knightPrefab == null)
+                knightPrefab = Resources.Load<GameObject>("Allies/Knight") ?? Resources.Load<GameObject>("Knight");
+
+            if (knightMaterial == null)
+                knightMaterial = Resources.Load<Material>("Materials/M_Knight") ?? Resources.Load<Material>("M_Knight");
+
+            if (swordPrefab == null)
+                swordPrefab = Resources.Load<GameObject>("Weapons/sword_1handed") ?? Resources.Load<GameObject>("sword_1handed");
+
+            if (shieldPrefab == null)
+                shieldPrefab = Resources.Load<GameObject>("Weapons/shield_badge_color") ?? Resources.Load<GameObject>("shield_badge_color");
+
 #if UNITY_EDITOR
             if (knightPrefab == null)
                 knightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Adventures/Knight.fbx");

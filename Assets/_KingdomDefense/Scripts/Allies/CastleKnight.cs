@@ -427,10 +427,11 @@ namespace KingdomDefense.Allies
             {
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 r.receiveShadows = false;
-                Shader shader = Shader.Find("Unlit/Color") ?? Shader.Find("GUI/Text Shader") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
-                Material mat = new Material(shader);
+                Shader shader = Shader.Find("Sprites/Default") ?? Shader.Find("UI/Default") ?? Shader.Find("Mobile/Diffuse") ?? Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                Material mat = shader != null ? new Material(shader) : new Material(Shader.Find("Standard"));
                 mat.mainTexture = Texture2D.whiteTexture;
                 mat.color = color;
+                if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
                 r.material = mat;
             }
         }

@@ -53,6 +53,11 @@ namespace KingdomDefense.Enemy
 
         public static GameObject LoadEnemyPrefab(EnemyType type)
         {
+            // 1. Ưu tiên nạp từ Resources/Enemies (Hoạt động trên mọi nền tảng: Android, iOS, Windows, WebGL)
+            GameObject resPrefab = Resources.Load<GameObject>($"Enemies/{type}") ??
+                                   Resources.Load<GameObject>($"Prefabs/Enemies/{type}");
+            if (resPrefab != null) return resPrefab;
+
 #if UNITY_EDITOR
             string path = $"{PrefabBasePath}{type}.prefab";
             return AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -290,20 +295,13 @@ namespace KingdomDefense.Enemy
             root.transform.localScale = Vector3.one * 1.05f;
 
             GameObject modelPrefab = LoadAsset<GameObject>("Assets/_KingdomDefense/Models/Characters/Adventures/Knight.fbx");
-            Material knightMat = LoadAsset<Material>("Assets/_KingdomDefense/Materials/M_Knight.mat");
-            GameObject swordPrefab = LoadAsset<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/sword_2handed.fbx");
+            Material bossMat = LoadAsset<Material>("Assets/_KingdomDefense/Materials/M_BossOrcus.mat") ??
+                               LoadAsset<Material>("Assets/_KingdomDefense/Materials/M_Knight.mat");
+            GameObject swordPrefab = LoadAsset<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/sword_2handed.fbx") ??
+                                     LoadAsset<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/sword_1handed.fbx");
 
             GameObject visual = InstantiateModel(modelPrefab, root.transform);
-            ApplyMaterial(visual, knightMat);
-
-            // Đổi màu giáp sang sắc đen hắc ám cho Ma Vương
-            foreach (Renderer r in visual.GetComponentsInChildren<Renderer>())
-            {
-                if (r.material != null)
-                {
-                    r.material.color = new Color(0.25f, 0.18f, 0.18f); // Đen quỷ đỏ sẫm
-                }
-            }
+            ApplyMaterial(visual, bossMat);
 
             if (swordPrefab != null)
             {
@@ -312,6 +310,7 @@ namespace KingdomDefense.Enemy
                 sword.transform.localPosition = new Vector3(0.28f, 0.55f, 0.35f);
                 sword.transform.localRotation = Quaternion.Euler(75f, 20f, -15f);
                 sword.transform.localScale = Vector3.one * 1.35f;
+                ApplyMaterial(sword, bossMat);
             }
 
             // Vương miện sừng quỷ hắc ám
@@ -323,7 +322,13 @@ namespace KingdomDefense.Enemy
                 horn.transform.localPosition = new Vector3(i * 0.16f, 0.88f, 0.05f);
                 horn.transform.localRotation = Quaternion.Euler(30f, 0f, i * -25f);
                 horn.transform.localScale = new Vector3(0.06f, 0.15f, 0.06f);
+#if UNITY_EDITOR
+                if (!Application.isPlaying) Object.DestroyImmediate(horn.GetComponent<Collider>());
+                else Object.Destroy(horn.GetComponent<Collider>());
+#else
                 Object.Destroy(horn.GetComponent<Collider>());
+#endif
+                ApplyMaterial(horn, bossMat);
             }
 
             CapsuleCollider col = root.AddComponent<CapsuleCollider>();
@@ -358,7 +363,12 @@ namespace KingdomDefense.Enemy
             fallback.transform.SetParent(parent, false);
             fallback.transform.localPosition = new Vector3(0f, 0.5f, 0f);
             fallback.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+#if UNITY_EDITOR
+            if (!Application.isPlaying) Object.DestroyImmediate(fallback.GetComponent<Collider>());
+            else Object.Destroy(fallback.GetComponent<Collider>());
+#else
             Object.Destroy(fallback.GetComponent<Collider>());
+#endif
             return fallback;
         }
 
@@ -373,6 +383,19 @@ namespace KingdomDefense.Enemy
 
         private static T LoadAsset<T>(string path) where T : Object
         {
+            if (string.IsNullOrEmpty(path)) return null;
+
+            // 1. Thử nạp từ Resources theo tên tệp không phần mở rộng
+            string fileNameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(path);
+            T res = Resources.Load<T>($"Materials/{fileNameWithoutExt}") ??
+                    Resources.Load<T>($"Enemies/{fileNameWithoutExt}") ??
+                    Resources.Load<T>($"Allies/{fileNameWithoutExt}") ??
+                    Resources.Load<T>($"Weapons/{fileNameWithoutExt}") ??
+                    Resources.Load<T>($"Prefabs/{fileNameWithoutExt}") ??
+                    Resources.Load<T>(fileNameWithoutExt);
+
+            if (res != null) return res;
+
 #if UNITY_EDITOR
             return AssetDatabase.LoadAssetAtPath<T>(path);
 #else

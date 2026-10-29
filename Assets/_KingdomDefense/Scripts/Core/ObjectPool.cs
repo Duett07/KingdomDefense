@@ -95,10 +95,12 @@ namespace KingdomDefense.Core
 
             if (!hasArrowConfig)
             {
-                GameObject arrowPrefab = null;
+                GameObject arrowPrefab = Resources.Load<GameObject>("Prefabs/Arrow") ??
+                                         Resources.Load<GameObject>("Arrow");
 #if UNITY_EDITOR
-                arrowPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/Arrow.prefab") ??
-                              UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
+                if (arrowPrefab == null)
+                    arrowPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/Arrow.prefab") ??
+                                  UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Models/Characters/Weapons/arrow.fbx");
 #endif
                 if (arrowPrefab != null)
                 {
@@ -125,9 +127,11 @@ namespace KingdomDefense.Core
 
             if (!hasCannonConfig)
             {
-                GameObject cannonPrefab = null;
+                GameObject cannonPrefab = Resources.Load<GameObject>("Prefabs/CannonBall") ??
+                                          Resources.Load<GameObject>("CannonBall");
 #if UNITY_EDITOR
-                cannonPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/CannonBall.prefab");
+                if (cannonPrefab == null)
+                    cannonPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_KingdomDefense/Prefabs/CannonBall.prefab");
 #endif
                 if (cannonPrefab == null)
                 {

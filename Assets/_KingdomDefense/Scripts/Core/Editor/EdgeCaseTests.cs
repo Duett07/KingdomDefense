@@ -159,5 +159,72 @@ namespace KingdomDefense.Tests
 
             if (ballObj != null) Object.DestroyImmediate(ballObj);
         }
+
+        [Test]
+        public void ConsecutiveTowerSelling_CanSellSecondTowerSuccessfully()
+        {
+            // Thiết lập TowerUI
+            GameObject towerUIObj = new GameObject("Test_TowerUI");
+            TowerUI towerUI = towerUIObj.AddComponent<TowerUI>();
+
+            // Tạo tháp 1 và tháp 2 (vốn 100 vàng mỗi tháp, hoàn trả 70 vàng)
+            GameObject t1Obj = new GameObject("Tower_1");
+            Tower tower1 = t1Obj.AddComponent<Tower>();
+            tower1.InitializeBaseCost(100);
+
+            GameObject t2Obj = new GameObject("Tower_2");
+            Tower tower2 = t2Obj.AddComponent<Tower>();
+            tower2.InitializeBaseCost(100);
+
+            int goldStart = _hud.CurrentGold;
+
+            // 1. Chọn và bán Tháp 1
+            towerUI.SelectTower(tower1);
+            Assert.IsTrue(towerUI.IsSellButtonInteractable, "Nút Bán tháp 1 phải tương tác được.");
+            towerUI.SellButton.onClick.Invoke();
+
+            Assert.IsTrue(tower1.IsSold, "Tháp 1 phải được bán thành công.");
+            Assert.AreEqual(goldStart + 70, _hud.CurrentGold, "Tiền hoàn lại sau bán tháp 1 chuẩn xác.");
+
+            // 2. Chọn Tháp 2: Nút bán PHẢI được kích hoạt lại (sửa lỗi không bán được tháp thứ 2)
+            towerUI.SelectTower(tower2);
+            Assert.IsTrue(towerUI.IsSellButtonInteractable, "Nút Bán tháp 2 PHẢI được kích hoạt lại khi chọn tháp thứ hai.");
+
+            // 3. Thực hiện bán Tháp 2
+            towerUI.SellButton.onClick.Invoke();
+            Assert.IsTrue(tower2.IsSold, "Tháp 2 phải được bán thành công.");
+            Assert.AreEqual(goldStart + 140, _hud.CurrentGold, "Tiền hoàn lại sau bán cả 2 tháp chuẩn xác.");
+
+            // Dọn dẹp
+            Object.DestroyImmediate(t1Obj);
+            Object.DestroyImmediate(t2Obj);
+            Object.DestroyImmediate(towerUIObj);
+        }
+
+        [Test]
+        public void BossOrcus_HasValidMaterials_NeverRendersAsWhiteBox()
+        {
+            GameObject bossObj = EnemyFactory.CreateEnemy(EnemyType.BossOrcus, Vector3.zero, Quaternion.identity);
+            Assert.IsNotNull(bossObj, "Boss Orcus phải được khởi tạo thành công.");
+
+            BossOrcus boss = bossObj.GetComponent<BossOrcus>();
+            Assert.IsNotNull(boss, "Component BossOrcus phải tồn tại trên Boss.");
+
+            boss.EnsureBossMaterialsValid();
+
+            Renderer[] renderers = bossObj.GetComponentsInChildren<Renderer>(true);
+            Assert.Greater(renderers.Length, 0, "Boss Orcus phải có các thành phần 3D Renderer.");
+
+            foreach (Renderer r in renderers)
+            {
+                if (r == null || r.name == "Fill" || r.name == "Background" || r.name == "Orcus_Quake_Ring") continue;
+
+                Assert.IsNotNull(r.sharedMaterial, $"Renderer '{r.gameObject.name}' không được phép có Material null (gây khối trắng).");
+                Assert.IsFalse(r.sharedMaterial.name.Contains("Default"),
+                    $"Renderer '{r.gameObject.name}' không được dùng Material mặc định trắng ({r.sharedMaterial.name}).");
+            }
+
+            Object.DestroyImmediate(bossObj);
+        }
     }
 }
