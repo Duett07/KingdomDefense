@@ -191,15 +191,3 @@ Dự án được xây dựng theo chuẩn **Test-Driven Development (TDD)** v�
 5. **`PerformanceTests.cs`:** Đo đạc hiệu năng render, đảm bảo giới hạn Draw Call và khung hình ổn định 60 FPS.
 
 > Để chạy toàn bộ test trong Unity: Mở cửa sổ **`Window` -> `General` -> `Test Runner`** -> Click **`Run All`**.
-
----
-
-## THÔNG TIN TÁC GIẢ & BẢN QUYỀN
-
-- **Học phần:** Môi trường ảo (Virtual Environment)
-- **Cơ sở đào tạo:** Học viện Kỹ thuật Quân sự (MTA)
-- **Tác giả:** Nhóm sinh viên thực hiện đồ án môn học
-- **Giấy phép (License):** Đồ án phục vụ mục đích nghiên cứu học thuật và giáo dục. Toàn bộ tài nguyên 3D mẫu thuộc bản quyền bộ KayKit Medieval Pack (CC0 Public Domain).
-
----
-*Chúc bạn có những trải nghiệm thủ thành kịch tính cùng **Kingdom Defense**!*
